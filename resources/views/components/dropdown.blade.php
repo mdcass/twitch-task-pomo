@@ -1,21 +1,21 @@
-@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-1 bg-white', 'dropdownClasses' => ''])
+@props(['align' => 'right', 'width' => '48', 'contentClasses' => '', 'dropdownClasses' => ''])
 
 @php
 $alignmentClasses = match ($align) {
-    'left' => 'ltr:origin-top-left rtl:origin-top-right start-0',
-    'top' => 'origin-top',
+    'left' => 'start-0',
+    'top' => '',
     'none', 'false' => '',
-    default => 'ltr:origin-top-right rtl:origin-top-left end-0',
+    default => 'end-0',
 };
 
 $width = match ($width) {
-    '48' => 'w-48',
-    '60' => 'w-60',
-    default => 'w-48',
+    '48' => '12rem',
+    '60' => '15rem',
+    default => '12rem',
 };
 @endphp
 
-<div class="relative" x-data="{ open: false }" @click.away="open = false" @close.stop="open = false">
+<div class="position-relative" x-data="{ open: false }" @click.away="open = false" @close.stop="open = false">
     <div @click="open = ! open">
         {{ $trigger }}
     </div>
@@ -27,10 +27,10 @@ $width = match ($width) {
             x-transition:leave="transition ease-in duration-75"
             x-transition:leave-start="transform opacity-100 scale-100"
             x-transition:leave-end="transform opacity-0 scale-95"
-            class="absolute z-50 mt-2 {{ $width }} rounded-md shadow-lg {{ $alignmentClasses }} {{ $dropdownClasses }}"
-            style="display: none;"
+            class="dropdown-menu show mt-2 shadow border border-translucent {{ $alignmentClasses }} {{ $dropdownClasses }}"
+            style="display: none; width: {{ $width }};"
             @click="open = false">
-        <div class="rounded-md ring-1 ring-black ring-opacity-5 {{ $contentClasses }}">
+        <div class="{{ $contentClasses }}">
             {{ $content }}
         </div>
     </div>

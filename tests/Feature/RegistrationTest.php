@@ -20,6 +20,13 @@ class RegistrationTest extends TestCase
         $response = $this->get('/register');
 
         $response->assertStatus(200);
+        $response->assertSee('Sign up with Twitch');
+        $response->assertSee('Sign up with Discord');
+        $response->assertSee('Sign Up');
+        $response->assertSee('Create your account today.');
+        $response->assertSee('Name');
+        $response->assertSee('Email address');
+        $response->assertSee('Sign in to an existing account');
     }
 
     public function test_registration_screen_cannot_be_rendered_if_support_is_disabled(): void

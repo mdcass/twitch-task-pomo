@@ -1,60 +1,122 @@
-<x-guest-layout>
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
+<x-guest-layout variant="card">
+    <x-auth.page-card>
+        <x-slot name="aside">
+            <div class="position-relative px-4 px-lg-7 pt-7 pb-7 pb-sm-5 text-center text-md-start pb-lg-7 card-sign-up">
+                <h3 class="mb-3 text-body-emphasis fs-7">Register for your overlay composers and stream tools</h3>
+                <p class="text-body-tertiary">Register with your email, Twitch, or Discord. Get started in under 2 minutes.</p>
+                <ul class="list-unstyled mb-0 w-max-content w-md-auto">
+                    <li class="d-flex align-items-center"><span class="fa-solid fa-check text-success me-2"></span><span class="text-body-tertiary fw-semibold">Unlimited overlay composers</span></li>
+                    <li class="d-flex align-items-center"><span class="fa-solid fa-check text-success me-2"></span><span class="text-body-tertiary fw-semibold">Themed pomo timers and task bots</span></li>
+                    <li class="d-flex align-items-center"><span class="fa-solid fa-check text-success me-2"></span><span class="text-body-tertiary fw-semibold">Custom bot commands</span></li>
+                </ul>
+            </div>
+            <div class="position-relative z-n1 mb-6 d-none d-md-block text-center mt-md-15">
+                <img
+                    class="auth-title-box-img"
+                    src="{{ asset('images/auth/phoenix-auth-illustration.png') }}"
+                    alt=""
+                />
+            </div>
         </x-slot>
+
+        <div class="text-center mb-7">
+            <x-auth.simple-brand mark-only class="mb-1" mark-class="p-1" />
+            <h3 class="text-body-highlight">{{ __('Sign Up') }}</h3>
+            <p class="text-body-tertiary">Create your account today.</p>
+        </div>
+
+        <x-auth.social-button href="#" icon="fa-brands fa-twitch" iconColorClass="text-primary" class="mb-3" aria-disabled="true">
+            {{ __('Sign up with Twitch') }}
+        </x-auth.social-button>
+        <x-auth.social-button href="#" icon="fa-brands fa-discord" iconColorClass="text-info" aria-disabled="true">
+            {{ __('Sign up with Discord') }}
+        </x-auth.social-button>
+
+        <div class="position-relative mt-4">
+            <hr class="bg-body-secondary" />
+            <div class="divider-content-center bg-body-emphasis">{{ __('or use email') }}</div>
+        </div>
 
         <x-validation-errors class="mb-4" />
 
         <form method="POST" action="{{ route('register') }}">
             @csrf
 
-            <div>
-                <x-label for="name" value="{{ __('Name') }}" />
-                <x-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            </div>
+            <x-auth.field
+                id="name"
+                name="name"
+                :label="__('Name')"
+                type="text"
+                :value="old('name')"
+                required
+                autofocus
+                autocomplete="name"
+            />
 
-            <div class="mt-4">
-                <x-label for="email" value="{{ __('Email') }}" />
-                <x-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            </div>
+            <x-auth.field
+                id="email"
+                name="email"
+                :label="__('Email address')"
+                type="email"
+                :value="old('email')"
+                required
+                autocomplete="username"
+            />
 
-            <div class="mt-4">
-                <x-label for="password" value="{{ __('Password') }}" />
-                <x-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            </div>
+            <x-auth.field-row>
+                <x-auth.field-column>
+                    <x-auth.field
+                        id="password"
+                        name="password"
+                        :label="__('Password')"
+                        type="password"
+                        class="mb-0"
+                        required
+                        autocomplete="new-password"
+                    />
+                </x-auth.field-column>
 
-            <div class="mt-4">
-                <x-label for="password_confirmation" value="{{ __('Confirm Password') }}" />
-                <x-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
-            </div>
+                <x-auth.field-column>
+                    <x-auth.field
+                        id="password_confirmation"
+                        name="password_confirmation"
+                        :label="__('Confirm Password')"
+                        type="password"
+                        class="mb-0"
+                        required
+                        autocomplete="new-password"
+                    />
+                </x-auth.field-column>
+            </x-auth.field-row>
 
             @if (Laravel\Jetstream\Jetstream::hasTermsAndPrivacyPolicyFeature())
-                <div class="mt-4">
+                <div class="form-check mb-4">
                     <x-label for="terms">
-                        <div class="flex items-center">
+                        <div class="d-flex align-items-start gap-2">
                             <x-checkbox name="terms" id="terms" required />
 
-                            <div class="ms-2">
+                            <div class="small text-body-secondary">
                                 {!! __('I agree to the :terms_of_service and :privacy_policy', [
-                                        'terms_of_service' => '<a target="_blank" href="'.route('terms.show').'" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">'.__('Terms of Service').'</a>',
-                                        'privacy_policy' => '<a target="_blank" href="'.route('policy.show').'" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">'.__('Privacy Policy').'</a>',
+                                        'terms_of_service' => '<a target="_blank" href="'.route('terms.show').'" class="fw-semibold text-decoration-none">'.__('Terms of Service').'</a>',
+                                        'privacy_policy' => '<a target="_blank" href="'.route('policy.show').'" class="fw-semibold text-decoration-none">'.__('Privacy Policy').'</a>',
                                 ]) !!}
                             </div>
                         </div>
                     </x-label>
                 </div>
+            @else
+                <p class="fs-9 text-body-tertiary mb-3">
+                    Twitch and Discord account linking will be available during onboarding. Terms of service and privacy acknowledgements will apply before external provider-based setup is completed.
+                </p>
             @endif
 
-            <div class="flex items-center justify-end mt-4">
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
-                    {{ __('Already registered?') }}
-                </a>
+            <x-button class="w-100 mb-3">{{ __('Sign up') }}</x-button>
 
-                <x-button class="ms-4">
-                    {{ __('Register') }}
-                </x-button>
+            <div class="text-center">
+                <a class="fs-9 fw-bold" href="{{ route('login') }}">
+                    {{ __('Sign in to an existing account') }}
+                </a>
             </div>
         </form>
-    </x-authentication-card>
+    </x-auth.page-card>
 </x-guest-layout>

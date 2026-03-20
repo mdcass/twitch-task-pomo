@@ -1,23 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Team Settings') }}
-        </h2>
+        <div>
+            <div class="small text-uppercase fw-bold text-body-tertiary mb-2">{{ __('Team Ownership') }}</div>
+            <h1 class="h2 mb-1">{{ __('Team Settings') }}</h1>
+            <p class="text-body-secondary mb-0">Manage the current team record, membership, roles, and destructive actions from the Phoenix-based account shell.</p>
+        </div>
     </x-slot>
 
-    <div>
-        <div class="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
-            @livewire('teams.update-team-name-form', ['team' => $team])
+    <div class="d-flex flex-column gap-4">
+        @livewire('teams.update-team-name-form', ['team' => $team])
+        @livewire('teams.team-member-manager', ['team' => $team])
 
-            @livewire('teams.team-member-manager', ['team' => $team])
-
-            @if (Gate::check('delete', $team) && ! $team->personal_team)
-                <x-section-border />
-
-                <div class="mt-10 sm:mt-0">
-                    @livewire('teams.delete-team-form', ['team' => $team])
-                </div>
-            @endif
-        </div>
+        @if (Gate::check('delete', $team) && ! $team->personal_team)
+            <x-section-border />
+            @livewire('teams.delete-team-form', ['team' => $team])
+        @endif
     </div>
 </x-app-layout>

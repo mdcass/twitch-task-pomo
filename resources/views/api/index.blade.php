@@ -1,13 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('API Tokens') }}
-        </h2>
+        <div>
+            <div class="small text-uppercase fw-bold text-body-tertiary mb-2">{{ __('Developer Access') }}</div>
+            <h1 class="h2 mb-1">{{ __('API Tokens') }}</h1>
+            <p class="text-body-secondary mb-0">Manage personal access tokens inside the shared Bootstrap/Phoenix account surface.</p>
+        </div>
     </x-slot>
 
-    <div>
-        <div class="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
-            @livewire('api.api-token-manager')
-        </div>
-    </div>
+    @livewire('api.api-token-manager')
 </x-app-layout>

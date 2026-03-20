@@ -1,42 +1,68 @@
+@props([
+    'layout' => 'vertical',
+    'layoutDefinition' => [],
+])
+
+@php
+    $productName = config('app.name') === 'Laravel' ? 'Twitch Task Pomo' : config('app.name');
+@endphp
+
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html
+    lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+    data-navigation-type="{{ $layoutDefinition['navigation_type'] }}"
+    data-navbar-horizontal-shape="{{ $layoutDefinition['navbar_horizontal_shape'] }}"
+>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ $productName }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <script>
+            (() => {
+                const storedTheme = localStorage.getItem('phoenixTheme') ?? 'light';
+                const theme = storedTheme === 'auto'
+                    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : storedTheme;
+                const sidebarCollapsed = localStorage.getItem('phoenixIsNavbarVerticalCollapsed') === 'true';
 
-        <!-- Styles -->
+                document.documentElement.setAttribute('data-bs-theme', theme);
+                document.documentElement.classList.toggle('navbar-vertical-collapsed', sidebarCollapsed);
+            })();
+        </script>
+
+        @vite(['resources/css/phoenix/app.scss', 'resources/js/phoenix/app.js'])
+
         @livewireStyles
     </head>
-    <body class="font-sans antialiased">
+    <body @class(['text-body', $layoutDefinition['body_class']])>
         <x-banner />
 
-        <div class="min-h-screen bg-gray-100">
-            @livewire('navigation-menu')
-
-            <!-- Page Heading -->
-            @if (isset($header))
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <main class="main" data-shell-layout="{{ $layout }}" id="top">
+            <x-shell.layout
+                :layout="$layout"
+                :layout-definition="$layoutDefinition"
+                :sections="$sections"
+                :top-navigation-items="$topNavigationItems"
+                :utility="$utility"
+                :product-name="$productName"
+            />
+            <div class="content">
+                @if (isset($header))
+                    <header>
                         {{ $header }}
-                    </div>
-                </header>
-            @endif
+                    </header>
+                @endif
 
-            <!-- Page Content -->
-            <main>
                 {{ $slot }}
-            </main>
-        </div>
+            </div>
+        </main>
 
         @stack('modals')
 

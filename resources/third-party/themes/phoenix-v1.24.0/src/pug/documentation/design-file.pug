@@ -1,0 +1,32 @@
+extends ../layouts/LayoutComponent
+
+append variables
+  -
+    var pageHeader = {
+      title: 'Design',
+    }
+
+block component
+  +ComponentCard({title: 'Figma file',hideNavTab: true}).my-4
+    .alert.alert-info.p-3.mb-4(role='alert')
+        .d-flex
+          span.fas.fa-exclamation-circle.fs-6
+          .flex-1.ms-3
+            p.mb-0 Figma file is only available for 
+              strong Standard Plus 
+              | &amp; 
+              strong Extended Plus 
+              | license
+    h5(data-anchor) To play with the design:
+    ul
+      li 
+        a(href="https://www.figma.com/" target="_blank") Download Figma
+      li Download 
+        code #{name}-design-#{version}.zip  
+        | from ThemeWagon account
+      li Open the figma link from 
+        code #{name}-design-#{version} -> Figma file link.md 
+        | file
+      li This file is 
+        code "read-only". 
+        | So, to customize the design on your own, you have to duplicate the Figma file and start the editing process on the copied file.

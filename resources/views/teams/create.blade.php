@@ -1,13 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Create Team') }}
-        </h2>
+        <div>
+            <div class="small text-uppercase fw-bold text-body-tertiary mb-2">{{ __('Team Setup') }}</div>
+            <h1 class="h2 mb-1">{{ __('Create Team') }}</h1>
+            <p class="text-body-secondary mb-0">Establish the team ownership boundary that the product uses for canvases, widgets, and future Twitch integrations.</p>
+        </div>
     </x-slot>
 
-    <div>
-        <div class="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
-            @livewire('teams.create-team-form')
-        </div>
-    </div>
+    @livewire('teams.create-team-form')
 </x-app-layout>

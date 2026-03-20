@@ -15,6 +15,14 @@ class AuthenticationTest extends TestCase
         $response = $this->get('/login');
 
         $response->assertStatus(200);
+        $response->assertSee('Sign in with Twitch');
+        $response->assertSee('Sign in with Discord');
+        $response->assertSee('or use email');
+        $response->assertSee('Forgot your password?');
+        $response->assertSee('Create an account');
+        $response->assertSee('type="checkbox"', false);
+        $response->assertSee('id="remember_me"', false);
+        $response->assertDontSee('<x-checkbox', false);
     }
 
     public function test_users_can_authenticate_using_the_login_screen(): void

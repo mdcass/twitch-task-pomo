@@ -1,12 +1,18 @@
-<x-guest-layout>
-    <div class="pt-4 bg-gray-100">
-        <div class="min-h-screen flex flex-col items-center pt-6 sm:pt-0">
-            <div>
-                <x-authentication-card-logo />
-            </div>
+<x-guest-layout variant="card">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-xl-9">
+                <div class="card border border-translucent shadow-sm">
+                    <div class="card-body p-4 p-lg-5">
+                        <div class="mb-4">
+                            <x-authentication-card-logo />
+                        </div>
 
-            <div class="w-full sm:max-w-2xl mt-6 p-6 bg-white shadow-md overflow-hidden sm:rounded-lg prose">
-                {!! $policy !!}
+                        <div class="text-body-secondary">
+                            {!! $policy !!}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
