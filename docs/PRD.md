@@ -669,8 +669,8 @@ Epics and Tasks:
 
 Establish the Laravel product baseline and internal dashboard surfaces needed to support the first vertical slice.
 
-- `BP-TASK-P1-01` Install Laravel Jetstream on the Livewire stack while keeping product-owned team models separate from Jetstream defaults.
-- `BP-TASK-P1-02` Install and configure Spatie activity logging with published migrations and environment-safe defaults.
+- `BP-TASK-P1-01` DONE - Install Laravel Jetstream on the Livewire stack while keeping product-owned team models separate from Jetstream defaults.
+- `BP-TASK-P1-02` DONE - Install and configure Spatie activity logging with published migrations and environment-safe defaults.
 - `BP-TASK-P1-03` Add parallel test execution support to the local toolchain and project test commands.
 - `BP-TASK-P1-04` Analyze the purchased Bootstrap 5 theme project, migrate its Gulp asset pipeline to Laravel Vite, and replace the existing Tailwind setup.
 - `BP-TASK-P1-05` Refactor Jetstream-provided authentication screens and shared layout components onto the Bootstrap theme primitives.
