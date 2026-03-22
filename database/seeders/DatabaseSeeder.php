@@ -13,9 +13,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->withPersonalTeam()->create();
+        // User::factory(10)->withStreamerTeam()->create();
 
-        User::factory()->withPersonalTeam()->create([
+        User::factory()->withStreamerTeam()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);

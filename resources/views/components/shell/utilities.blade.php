@@ -106,22 +106,6 @@
                     </div>
                 @endif
 
-                @if ($utility['switchable_teams']->count() > 1)
-                    <div class="card-footer p-0 border-top border-translucent">
-                        <div class="px-3 pt-3 pb-2">
-                            <h6 class="mb-0 text-body-emphasis fs-10">{{ __('Switch Teams') }}</h6>
-                        </div>
-
-                        <ul class="nav d-flex flex-column mb-0 pb-3">
-                            @foreach ($utility['switchable_teams'] as $team)
-                                <li class="nav-item">
-                                    <x-switchable-team :team="$team" component="shell.team-switch-link" />
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
                 <div class="card-footer p-0 border-top border-translucent">
                     <div class="px-3 py-3">
                         <form method="POST" action="{{ $utility['logout_url'] }}">

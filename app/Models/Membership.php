@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TeamMemberRole;
 use Laravel\Jetstream\Membership as JetstreamMembership;
 
 class Membership extends JetstreamMembership
@@ -12,4 +13,16 @@ class Membership extends JetstreamMembership
      * @var bool
      */
     public $incrementing = true;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'role' => TeamMemberRole::class,
+        ];
+    }
 }

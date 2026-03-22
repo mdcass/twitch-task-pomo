@@ -2,15 +2,15 @@
 
 namespace Database\Factories;
 
+use App\Enums\TeamType;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Laravel\Jetstream\Features;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -49,24 +49,37 @@ class UserFactory extends Factory
         ]);
     }
 
-    /**
-     * Indicate that the user should have a personal team.
-     */
-    public function withPersonalTeam(?callable $callback = null): static
+    public function withStreamerTeam(): static
     {
-        if (! Features::hasTeamFeatures()) {
-            return $this->state([]);
-        }
+        return $this->withTeam(TeamType::Streamer);
+    }
 
-        return $this->has(
-            Team::factory()
-                ->state(fn (array $attributes, User $user) => [
-                    'name' => $user->name.'\'s Team',
-                    'user_id' => $user->id,
-                    'personal_team' => true,
+    public function withViewerTeam(): static
+    {
+        return $this->withTeam(TeamType::Viewer);
+    }
+
+    protected function defaultTeamName(User $user, TeamType $type): string
+    {
+        $firstName = Str::of($user->name)->trim()->explode(' ')->filter()->first() ?: 'New';
+
+        return sprintf("%s's %s Profile", $firstName, $type->label());
+    }
+
+    protected function withTeam(TeamType $type): static
+    {
+        return $this->afterCreating(function (User $user) use ($type) {
+            $team = Team::factory()
+                ->for($user, 'owner')
+                ->state([
+                    'name' => $this->defaultTeamName($user, $type),
+                    'type' => $type,
                 ])
-                ->when(is_callable($callback), $callback),
-            'ownedTeams'
-        );
+                ->create();
+
+            $user->forceFill([
+                'current_team_id' => $team->id,
+            ])->save();
+        });
     }
 }

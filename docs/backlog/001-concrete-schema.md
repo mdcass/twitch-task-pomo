@@ -19,7 +19,9 @@ It does not restate widget behavior, bot command semantics, viewer timer UX, or 
   - Keep Jetstream and Fortify email/password auth available as a first-class application path alongside linked external providers.
 - `teams`
   - Ownership boundary for streamer-oriented and viewer-oriented contexts.
-  - Fields: `id`, `uuid`, `name`, `type`, `owned_by_user_id`, timestamps, optional suspension metadata.
+  - Current Phase 1 implementation fields: `id`, `user_id`, `name`, `type`, timestamps.
+  - `user_id` remains the owner foreign key for Jetstream compatibility while product code treats the record as a viewer or streamer profile.
+  - Team records should use soft deletes so ownership and collaborator associations remain restorable.
 - `team_user`
   - Membership and role pivot.
   - Fields: `team_id`, `user_id`, `role`, timestamps.
@@ -93,6 +95,8 @@ It does not restate widget behavior, bot command semantics, viewer timer UX, or 
 ## Relationship Notes
 
 - `Team` remains the ownership, authorization, and billing boundary.
+- The generic Jetstream team-management, invitation, and switching surfaces are intentionally disabled until product-owned profile management exists.
+- Enum meanings are enforced in the application layer while the database stores string columns for `teams.type` and `team_user.role`.
 - `Stream` is a durable Twitch channel record and should not replace team ownership.
 - `StreamSession` owns ephemeral runtime state for tasks, Pomodoro, bot activity, timer publication, and metering.
 - Writes for team-scoped records should route through team or team-owned relationships.

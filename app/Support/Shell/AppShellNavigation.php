@@ -4,7 +4,6 @@ namespace App\Support\Shell;
 
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Jetstream\Jetstream;
@@ -53,24 +52,6 @@ class AppShellNavigation
                         'route' => 'dashboard',
                         'active' => ['dashboard'],
                         'icon' => 'uil uil-estate',
-                    ],
-                    [
-                        'key' => 'team-settings',
-                        'label' => __('Team Settings'),
-                        'route' => 'teams.show',
-                        'route_params' => fn (User $user): array => [$user->currentTeam?->id],
-                        'active' => ['teams.show'],
-                        'icon' => 'uil uil-users-alt',
-                        'visible' => fn (User $user): bool => Jetstream::hasTeamFeatures() && $user->currentTeam !== null,
-                    ],
-                    [
-                        'key' => 'team-create',
-                        'label' => __('Create Team'),
-                        'route' => 'teams.create',
-                        'active' => ['teams.create'],
-                        'icon' => 'uil uil-plus-circle',
-                        'visible' => fn (User $user): bool => Jetstream::hasTeamFeatures()
-                            && Gate::forUser($user)->check('create', Jetstream::newTeamModel()),
                     ],
                 ],
             ],
@@ -203,42 +184,10 @@ class AppShellNavigation
             'current_team_name' => $user->currentTeam?->name,
             'profile_photo_url' => Jetstream::managesProfilePhotos() ? $user->profile_photo_url : null,
             'actions' => $actions,
-            'team_actions' => $this->resolveTeamActions($user),
-            'switchable_teams' => Jetstream::hasTeamFeatures() ? $user->allTeams()->values() : collect(),
+            'team_actions' => [],
+            'switchable_teams' => collect(),
             'logout_url' => route('logout', absolute: false),
         ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    protected function resolveTeamActions(User $user): array
-    {
-        if (! Jetstream::hasTeamFeatures()) {
-            return [];
-        }
-
-        $actions = [];
-
-        if ($user->currentTeam !== null) {
-            $actions[] = [
-                'label' => __('Team Settings'),
-                'href' => route('teams.show', [$user->currentTeam->id], false),
-                'icon' => 'uil uil-users-alt',
-            ];
-        }
-
-        if (! Gate::forUser($user)->check('create', Jetstream::newTeamModel())) {
-            return $actions;
-        }
-
-        $actions[] = [
-            'label' => __('Create New Team'),
-            'href' => route('teams.create', absolute: false),
-            'icon' => 'uil uil-plus-circle',
-        ];
-
-        return $actions;
     }
 
     /**
@@ -256,17 +205,6 @@ class AppShellNavigation
                 'children' => [],
             ],
         ];
-
-        if (Jetstream::hasTeamFeatures() && $user->currentTeam !== null) {
-            $items[] = [
-                'key' => 'team',
-                'label' => __('Team'),
-                'href' => route('teams.show', [$user->currentTeam->id], false),
-                'active' => request()->routeIs('teams.show'),
-                'icon' => 'uil uil-users-alt',
-                'children' => [],
-            ];
-        }
 
         return $items;
     }

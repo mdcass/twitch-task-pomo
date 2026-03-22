@@ -298,6 +298,7 @@ Phase 1 team and role defaults:
 - Moderators may manage canvas layouts and related editor configuration
 - Signed overlay URL generation and regeneration should remain streamer-owner responsibilities rather than moderator capabilities
 - Viewer-oriented and streamer-oriented team contexts should be deletable independently
+- User and team deletion should use soft deletes so ownership and membership associations remain intact for later auditability and potential restoration
 - If a streamer's Twitch account is banned or suspended, the related team and overlay data should be suspended rather than removed
 
 All entry paths should require acceptance of privacy policy and terms and conditions before the user completes onboarding into either viewer-oriented or streamer-oriented access.
@@ -322,6 +323,7 @@ Authentication and onboarding defaults:
 - If a user revokes Twitch access from Twitch settings, the application should detect that state and prompt re-authentication
 - Provider-supplied email addresses must not automatically link to an existing local account
 - Streamer onboarding should follow a step-based flow: legal acceptance, Twitch authentication, product selection, then feature-specific setup
+- A later product-owned profile-management surface should allow an authenticated user to add the missing complementary viewer or streamer profile without exposing generic Jetstream team-management UI
 - Product selection should at minimum distinguish between `Overlay Composer` only and task-widget features
 - If task widgets are selected, onboarding should collect Pomodoro defaults before redirecting to the dashboard
 - If only the composer is selected, onboarding may complete directly into the composer experience
@@ -351,7 +353,9 @@ External identity and account-linking rules:
 Viewer-oriented onboarding expectations:
 
 - A non-authenticated viewer arriving at a timer link should see a simple viewer registration screen before reaching the timer
+- Viewer registration should use that timer-oriented entry path rather than the default dashboard `/register` route
 - Completing the viewer path should create a viewer-oriented team context after privacy and terms acceptance
+- If an authenticated user reaches the viewer registration path without a viewer-oriented team context, that path should create the missing viewer-oriented team rather than forcing a separate account
 - Middleware should ensure authenticated viewer-path users have a viewer-oriented team context before continuing to timer surfaces
 - Viewer onboarding, streamer onboarding, bot setup, and future signed-URL regeneration flows should use the shared persisted workflow system rather than ad hoc Livewire step counters
 
@@ -672,8 +676,8 @@ Establish the Laravel product baseline and internal dashboard surfaces needed to
 - `BP-TASK-P1-01` DONE - Install Laravel Jetstream on the Livewire stack while keeping product-owned team models separate from Jetstream defaults.
 - `BP-TASK-P1-02` DONE - Install and configure Spatie activity logging with published migrations and environment-safe defaults.
 - `BP-TASK-P1-03` DONE - Add parallel test execution support to the local toolchain and project test commands.
-- `BP-TASK-P1-04` Analyze the purchased Bootstrap 5 theme project, migrate its Gulp asset pipeline to Laravel Vite, and replace the existing Tailwind setup.
-- `BP-TASK-P1-05` Refactor Jetstream-provided authentication screens and shared layout components onto the Bootstrap theme primitives.
+- `BP-TASK-P1-04` DONE - Analyze the purchased Bootstrap 5 theme project, migrate its Gulp asset pipeline to Laravel Vite, and replace the existing Tailwind setup.
+- `BP-TASK-P1-05` DONE - Refactor Jetstream-provided authentication screens and shared layout components onto the Bootstrap theme primitives.
 - `BP-TASK-P1-06` Build the first authenticated dashboard layout, route group, and landing screens for setup, canvases, and streams.
 - `BP-TASK-P1-07` Add empty, setup-required, and loading states for the initial dashboard surfaces.
 

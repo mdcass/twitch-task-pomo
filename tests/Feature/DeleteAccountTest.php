@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Jetstream\Features;
@@ -19,13 +20,22 @@ class DeleteAccountTest extends TestCase
             $this->markTestSkipped('Account deletion is not enabled.');
         }
 
-        $this->actingAs($user = User::factory()->create());
+        $this->actingAs($user = User::factory()->withStreamerTeam()->create());
+        $team = $user->currentTeam;
 
-        $component = Livewire::test(DeleteUserForm::class)
+        Livewire::test(DeleteUserForm::class)
             ->set('password', 'password')
             ->call('deleteUser');
 
-        $this->assertNull($user->fresh());
+        $deletedUser = User::withTrashed()->find($user->id);
+        $deletedTeam = Team::withTrashed()->find($team->id);
+
+        $this->assertNotNull($deletedUser);
+        $this->assertTrue($deletedUser->trashed());
+        $this->assertSame($team->id, $deletedUser->current_team_id);
+        $this->assertNotNull($deletedTeam);
+        $this->assertTrue($deletedTeam->trashed());
+        $this->assertSame($user->id, $deletedTeam->user_id);
     }
 
     public function test_correct_password_must_be_provided_before_account_can_be_deleted(): void
@@ -34,7 +44,7 @@ class DeleteAccountTest extends TestCase
             $this->markTestSkipped('Account deletion is not enabled.');
         }
 
-        $this->actingAs($user = User::factory()->create());
+        $this->actingAs($user = User::factory()->withStreamerTeam()->create());
 
         Livewire::test(DeleteUserForm::class)
             ->set('password', 'wrong-password')
@@ -42,5 +52,6 @@ class DeleteAccountTest extends TestCase
             ->assertHasErrors(['password']);
 
         $this->assertNotNull($user->fresh());
+        $this->assertFalse($user->fresh()->trashed());
     }
 }

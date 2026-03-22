@@ -3,13 +3,19 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\TeamMemberRole;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Jetstream\HasTeams;
+use Laravel\Jetstream\Jetstream;
+use Laravel\Jetstream\OwnerRole;
+use Laravel\Jetstream\Role;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -22,6 +28,7 @@ class User extends Authenticatable
     use HasProfilePhoto;
     use HasTeams;
     use Notifiable;
+    use SoftDeletes;
     use TwoFactorAuthenticatable;
 
     /**
@@ -65,7 +72,77 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'deleted_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get the first owned team used as the active-team fallback.
+     */
+    public function personalTeam(): ?Team
+    {
+        if (! $this->exists) {
+            return null;
+        }
+
+        if ($this->relationLoaded('ownedTeams')) {
+            /** @var Collection<int, Team> $ownedTeams */
+            $ownedTeams = $this->getRelation('ownedTeams');
+
+            return $ownedTeams->sortBy('id')->first();
+        }
+
+        return $this->ownedTeams()->oldest('id')->first();
+    }
+
+    /**
+     * Get the role that the user has on the team.
+     */
+    public function teamRole($team): ?Role
+    {
+        if ($this->ownsTeam($team)) {
+            return new OwnerRole;
+        }
+
+        if (! $this->belongsToTeam($team)) {
+            return null;
+        }
+
+        $membershipRole = $team->users
+            ->where('id', $this->id)
+            ->first()
+            ?->membership
+            ?->role;
+
+        $role = $membershipRole instanceof TeamMemberRole
+            ? $membershipRole->value
+            : $membershipRole;
+
+        return $role ? Jetstream::findRole($role) : null;
+    }
+
+    /**
+     * Determine if the user has the given role on the given team.
+     */
+    public function hasTeamRole($team, string $role): bool
+    {
+        if ($this->ownsTeam($team)) {
+            return true;
+        }
+
+        if (! $this->belongsToTeam($team)) {
+            return false;
+        }
+
+        $membershipRole = $team->users->where('id', $this->id)->first()
+            ?->membership
+            ?->role;
+
+        $resolvedRole = $membershipRole instanceof TeamMemberRole
+            ? $membershipRole->value
+            : $membershipRole;
+
+        return $resolvedRole === $role;
     }
 }

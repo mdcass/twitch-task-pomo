@@ -45,16 +45,6 @@ class AppShellLayoutTest extends TestCase
             ->get(route('profile.show', absolute: false))
             ->assertOk()
             ->assertSee('data-shell-layout="vertical"', false);
-
-        $this->actingAs($user)
-            ->get(route('teams.show', [$user->currentTeam->id], false))
-            ->assertOk()
-            ->assertSee('data-shell-layout="vertical"', false);
-
-        $this->actingAs($user)
-            ->get(route('teams.create', absolute: false))
-            ->assertOk()
-            ->assertSee('data-shell-layout="vertical"', false);
     }
 
     public function test_each_supported_layout_variant_renders_its_shell_markers(): void
@@ -79,25 +69,17 @@ class AppShellLayoutTest extends TestCase
         }
     }
 
-    public function test_team_settings_is_hidden_without_a_current_team(): void
-    {
-        $user = User::factory()->create();
-
-        $this->actingAs($user)
-            ->get('/_test/shell/vertical')
-            ->assertOk()
-            ->assertDontSee('Team Settings');
-    }
-
-    public function test_team_navigation_actions_render_when_a_current_team_exists(): void
+    public function test_team_management_actions_are_not_rendered_in_the_shell(): void
     {
         $user = $this->verifiedUserWithCurrentTeam();
 
         $this->actingAs($user)
             ->get('/_test/shell/vertical')
             ->assertOk()
-            ->assertSee('Team Settings')
-            ->assertSee('Create Team');
+            ->assertDontSee('Team Settings')
+            ->assertDontSee('Create Team')
+            ->assertDontSee('Create New Team')
+            ->assertDontSee('Switch Teams');
     }
 
     public function test_api_tokens_are_hidden_when_the_feature_is_disabled(): void
@@ -116,7 +98,6 @@ class AppShellLayoutTest extends TestCase
 
         config()->set('jetstream.features', [
             Features::api(),
-            Features::teams(['invitations' => true]),
             Features::accountDeletion(),
         ]);
 
@@ -154,13 +135,6 @@ class AppShellLayoutTest extends TestCase
 
     protected function verifiedUserWithCurrentTeam(): User
     {
-        $user = User::factory()->withPersonalTeam()->create();
-        $team = $user->ownedTeams()->first();
-
-        $user->forceFill([
-            'current_team_id' => $team?->id,
-        ])->save();
-
-        return $user->fresh();
+        return User::factory()->withStreamerTeam()->create()->fresh();
     }
 }

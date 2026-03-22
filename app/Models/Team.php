@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\TeamType;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Jetstream\Events\TeamCreated;
 use Laravel\Jetstream\Events\TeamDeleted;
 use Laravel\Jetstream\Events\TeamUpdated;
@@ -14,6 +16,8 @@ class Team extends JetstreamTeam
     /** @use HasFactory<TeamFactory> */
     use HasFactory;
 
+    use SoftDeletes;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -21,7 +25,7 @@ class Team extends JetstreamTeam
      */
     protected $fillable = [
         'name',
-        'personal_team',
+        'type',
     ];
 
     /**
@@ -43,7 +47,8 @@ class Team extends JetstreamTeam
     protected function casts(): array
     {
         return [
-            'personal_team' => 'boolean',
+            'deleted_at' => 'datetime',
+            'type' => TeamType::class,
         ];
     }
 }

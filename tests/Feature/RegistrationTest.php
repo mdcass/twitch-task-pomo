@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TeamType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Fortify\Features;
 use Laravel\Jetstream\Jetstream;
@@ -56,5 +57,12 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+
+        $user = auth()->user()->fresh()->load('ownedTeams', 'currentTeam');
+
+        $this->assertCount(1, $user->ownedTeams);
+        $this->assertSame(TeamType::Streamer, $user->ownedTeams->first()->type);
+        $this->assertTrue($user->currentTeam->is($user->ownedTeams->first()));
+        $this->assertSame('Test\'s Streamer Profile', $user->currentTeam->name);
     }
 }

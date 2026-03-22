@@ -14,6 +14,7 @@ This runbook tracks the implementation state of the repository at `HEAD`.
 - Authenticated navigation is product-owned and component-driven through a shared Blade component shell plus centralized PHP menu definitions, while guest auth pages remain on their separate guest layout variants.
 - The guest auth document shell now supports explicit `simple` and `card` variants, with the login screen rebuilt from the Phoenix simple sign-in reference and a reusable card shell prepared for the later registration redesign.
 - Font Awesome is now part of the local Vite asset pipeline and is the primary icon library for product-owned UI work.
+- Team persistence now uses product-owned semantics on top of Jetstream-compatible internals: `teams.user_id` remains the owner foreign key, `teams.type` and `team_user.role` are string columns with application-layer enum casts, `users` and `teams` use soft deletes, standard `/register` creates a streamer-oriented team by default, and the generic Jetstream team-management surface is disabled.
 - Initial implementation should follow Phase 1 Foundation MVP before attempting public-facing Twitch bot or billing work.
 
 ## Current Priorities

@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('team_user', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('team_id');
-            $table->foreignId('user_id');
-            $table->string('role')->nullable();
+            $table->foreignId('team_id')->constrained();
+            $table->foreignId('user_id')->constrained();
+            $table->string('role');
             $table->timestamps();
 
             $table->unique(['team_id', 'user_id']);

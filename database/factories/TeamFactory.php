@@ -2,11 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Enums\TeamType;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Team>
+ * @extends Factory<Team>
  */
 class TeamFactory extends Factory
 {
@@ -18,9 +20,25 @@ class TeamFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->unique()->company(),
+            'name' => $this->faker->unique()->company().' Streamer Profile',
             'user_id' => User::factory(),
-            'personal_team' => true,
+            'type' => TeamType::Streamer,
         ];
+    }
+
+    public function streamer(): static
+    {
+        return $this->state(fn () => [
+            'type' => TeamType::Streamer,
+            'name' => $this->faker->unique()->company().' Streamer Profile',
+        ]);
+    }
+
+    public function viewer(): static
+    {
+        return $this->state(fn () => [
+            'type' => TeamType::Viewer,
+            'name' => $this->faker->unique()->company().' Viewer Profile',
+        ]);
     }
 }
