@@ -30,7 +30,7 @@ It does not restate widget behavior, bot command semantics, viewer timer UX, or 
 
 - `provider_auths`
   - User-granted external auth records.
-  - Fields: `id`, `user_id`, `provider`, `provider_user_id`, nullable provider-email snapshot, encrypted `access_token`, encrypted `refresh_token`, `token_expires_at`, `scopes`, `profile`, `last_used_at`, nullable `revoked_at`, timestamps.
+  - Fields: `id`, `user_id`, `provider`, `provider_user_id`, nullable provider-email snapshot, encrypted `access_token`, encrypted `refresh_token`, `token_expires_at`, `scopes`, `profile`, `last_used_at`, timestamps, soft deletes.
   - Constraints: unique `(provider, provider_user_id)` and support multiple rows of the same provider for one user.
 - `provider_app_tokens`
   - Application-level Twitch token storage kept separate from user-granted auth.

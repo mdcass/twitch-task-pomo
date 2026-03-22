@@ -7,6 +7,7 @@ use App\Enums\TeamMemberRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -144,5 +145,25 @@ class User extends Authenticatable
             : $membershipRole;
 
         return $resolvedRole === $role;
+    }
+
+    /**
+     * Get the external provider links attached to the user.
+     *
+     * @return HasMany<ProviderAuth, $this>
+     */
+    public function providerAuths(): HasMany
+    {
+        return $this->hasMany(ProviderAuth::class);
+    }
+
+    /**
+     * Get the persisted settings attached to the user.
+     *
+     * @return HasMany<UserSetting, $this>
+     */
+    public function userSettings(): HasMany
+    {
+        return $this->hasMany(UserSetting::class);
     }
 }

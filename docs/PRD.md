@@ -336,7 +336,7 @@ External identity and account-linking rules:
 - Shared provider routes should use `/auth/{provider}/redirect` and `/auth/{provider}/callback`
 - Authenticated account settings or security surfaces should own provider-link and provider-unlink flows
 - `provider_auths` should be the user-linked boundary for external identity and provider-granted access
-- `provider_auths` should store `user_id`, provider enum, `provider_user_id`, nullable provider-email snapshot, profile JSON, encrypted `access_token`, encrypted `refresh_token`, `token_expires_at`, granted `scopes`, `last_used_at`, nullable `revoked_at`, and timestamps
+- `provider_auths` should store `user_id`, provider enum, `provider_user_id`, nullable provider-email snapshot, profile JSON, encrypted `access_token`, encrypted `refresh_token`, `token_expires_at`, granted `scopes`, `last_used_at`, standard soft-delete revocation state, and timestamps
 - `provider_auths` should enforce global uniqueness on `(provider, provider_user_id)` while allowing multiple records for the same provider to belong to one user
 - Third-party tokens must not be stored on `users`
 - Tokens should be retained only when an ongoing provider capability requires them; login-only provider links may leave token fields null or clear them after use
