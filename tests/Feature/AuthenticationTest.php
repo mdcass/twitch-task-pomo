@@ -17,6 +17,8 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Sign in with Twitch');
         $response->assertSee('Sign in with Discord');
+        $response->assertSee('/oauth/twitch/redirect?flow=login', false);
+        $response->assertSee('/oauth/discord/redirect?flow=login', false);
         $response->assertSee('or use email');
         $response->assertSee('Forgot your password?');
         $response->assertSee('Create an account');

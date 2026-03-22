@@ -6,10 +6,10 @@
         <p class="text-body-tertiary mb-0">Get access to your overlay composers and streamer tools</p>
     </div>
 
-    <x-auth.social-button href="#" icon="fa-brands fa-twitch" iconColorClass="text-primary" class="mb-3" aria-disabled="true">
+    <x-auth.social-button href="{{ route('oauth.redirect', ['provider' => 'twitch', 'flow' => 'login']) }}" icon="fa-brands fa-twitch" iconColorClass="text-primary" class="mb-3">
         {{ __('Sign in with Twitch') }}
     </x-auth.social-button>
-    <x-auth.social-button href="#" icon="fa-brands fa-discord" iconColorClass="text-info" aria-disabled="true">
+    <x-auth.social-button href="{{ route('oauth.redirect', ['provider' => 'discord', 'flow' => 'login']) }}" icon="fa-brands fa-discord" iconColorClass="text-info">
         {{ __('Sign in with Discord') }}
     </x-auth.social-button>
 

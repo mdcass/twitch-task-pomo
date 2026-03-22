@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use SocialiteProviders\Discord\Provider as DiscordProvider;
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Twitch\Provider as TwitchProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Event::listen(function (SocialiteWasCalled $event): void {
+            $event->extendSocialite('discord', DiscordProvider::class);
+            $event->extendSocialite('twitch', TwitchProvider::class);
+        });
     }
 }

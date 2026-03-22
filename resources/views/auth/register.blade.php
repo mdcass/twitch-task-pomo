@@ -1,4 +1,10 @@
 <x-guest-layout variant="card">
+    @php
+        $showLegalAcceptance = Laravel\Jetstream\Jetstream::hasTermsAndPrivacyPolicyFeature();
+        $termsUrl = route('terms.show');
+        $policyUrl = route('policy.show');
+    @endphp
+
     <x-auth.page-card>
         <x-slot name="aside">
             <div class="position-relative px-4 px-lg-7 pt-7 pb-7 pb-sm-5 text-center text-md-start pb-lg-7 card-sign-up">
@@ -25,21 +31,52 @@
             <p class="text-body-tertiary">Create your account today.</p>
         </div>
 
-        <x-auth.social-button href="#" icon="fa-brands fa-twitch" iconColorClass="text-primary" class="mb-3" aria-disabled="true">
-            {{ __('Sign up with Twitch') }}
-        </x-auth.social-button>
-        <x-auth.social-button href="#" icon="fa-brands fa-discord" iconColorClass="text-info" aria-disabled="true">
-            {{ __('Sign up with Discord') }}
-        </x-auth.social-button>
+        <form method="GET" action="{{ route('oauth.redirect', ['provider' => 'twitch']) }}">
+            <input type="hidden" name="flow" value="register" />
+
+            @if ($showLegalAcceptance)
+                <div class="form-check mb-4">
+                    <input
+                        id="social_terms"
+                        name="terms"
+                        type="checkbox"
+                        value="1"
+                        class="form-check-input"
+                        @checked(old('terms'))
+                    />
+                    <label class="form-check-label small text-body-secondary" for="social_terms">
+                        {!! __('I agree to the :terms and :privacy', [
+                            'terms' => '<a target="_blank" href="'.$termsUrl.'" class="fw-semibold text-decoration-none">'.__('Terms of Service').'</a>',
+                            'privacy' => '<a target="_blank" href="'.$policyUrl.'" class="fw-semibold text-decoration-none">'.__('Privacy Policy').'</a>',
+                        ]) !!}
+                    </label>
+                </div>
+            @endif
+
+            <x-auth.social-button as="button" type="submit" icon="fa-brands fa-twitch" iconColorClass="text-primary" class="mb-3">
+                {{ __('Sign up with Twitch') }}
+            </x-auth.social-button>
+
+            <x-auth.social-button
+                as="button"
+                type="submit"
+                icon="fa-brands fa-discord"
+                iconColorClass="text-info"
+                class="mb-4"
+                formaction="{{ route('oauth.redirect', ['provider' => 'discord']) }}"
+            >
+                {{ __('Sign up with Discord') }}
+            </x-auth.social-button>
+        </form>
 
         <div class="position-relative mt-4">
             <hr class="bg-body-secondary" />
-            <div class="divider-content-center bg-body-emphasis">{{ __('or use email') }}</div>
+            <div class="divider-content-center bg-body-emphasis">{{ __('or continue with email') }}</div>
         </div>
 
         <x-validation-errors class="mb-4" />
 
-        <form method="POST" action="{{ route('register') }}">
+        <form method="POST" action="{{ route('register') }}" class="mt-4">
             @csrf
 
             <x-auth.field
@@ -89,25 +126,24 @@
                 </x-auth.field-column>
             </x-auth.field-row>
 
-            @if (Laravel\Jetstream\Jetstream::hasTermsAndPrivacyPolicyFeature())
+            @if ($showLegalAcceptance)
                 <div class="form-check mb-4">
-                    <x-label for="terms">
-                        <div class="d-flex align-items-start gap-2">
-                            <x-checkbox name="terms" id="terms" required />
-
-                            <div class="small text-body-secondary">
-                                {!! __('I agree to the :terms_of_service and :privacy_policy', [
-                                        'terms_of_service' => '<a target="_blank" href="'.route('terms.show').'" class="fw-semibold text-decoration-none">'.__('Terms of Service').'</a>',
-                                        'privacy_policy' => '<a target="_blank" href="'.route('policy.show').'" class="fw-semibold text-decoration-none">'.__('Privacy Policy').'</a>',
-                                ]) !!}
-                            </div>
-                        </div>
-                    </x-label>
+                    <input
+                        id="terms"
+                        name="terms"
+                        type="checkbox"
+                        value="1"
+                        class="form-check-input"
+                        required
+                        @checked(old('terms'))
+                    />
+                    <label class="form-check-label small text-body-secondary" for="terms">
+                        {!! __('I agree to the :terms and :privacy', [
+                            'terms' => '<a target="_blank" href="'.$termsUrl.'" class="fw-semibold text-decoration-none">'.__('Terms of Service').'</a>',
+                            'privacy' => '<a target="_blank" href="'.$policyUrl.'" class="fw-semibold text-decoration-none">'.__('Privacy Policy').'</a>',
+                        ]) !!}
+                    </label>
                 </div>
-            @else
-                <p class="fs-9 text-body-tertiary mb-3">
-                    Twitch and Discord account linking will be available during onboarding. Terms of service and privacy acknowledgements will apply before external provider-based setup is completed.
-                </p>
             @endif
 
             <x-button class="w-100 mb-3">{{ __('Sign up') }}</x-button>

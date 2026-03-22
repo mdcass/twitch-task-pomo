@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\TeamType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Fortify\Features;
-use Laravel\Jetstream\Jetstream;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
@@ -23,8 +22,13 @@ class RegistrationTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Sign up with Twitch');
         $response->assertSee('Sign up with Discord');
+        $response->assertSee('/oauth/twitch/redirect', false);
+        $response->assertSee('/oauth/discord/redirect', false);
         $response->assertSee('Sign Up');
         $response->assertSee('Create your account today.');
+        $response->assertSee('name="terms"', false);
+        $response->assertDontSee('name="accept_terms"', false);
+        $response->assertDontSee('name="accept_privacy"', false);
         $response->assertSee('Name');
         $response->assertSee('Email address');
         $response->assertSee('Sign in to an existing account');
@@ -52,7 +56,7 @@ class RegistrationTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
-            'terms' => Jetstream::hasTermsAndPrivacyPolicyFeature(),
+            'terms' => true,
         ]);
 
         $this->assertAuthenticated();
