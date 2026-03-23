@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Actions\Auth\CompleteRegistration;
+use App\Enums\ActivityEvent;
+use App\Models\Activity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -24,6 +26,7 @@ class RegisterController extends \Laravel\Fortify\Http\Controllers\RegisteredUse
         $user = $creator->create($request->all());
 
         app(CompleteRegistration::class)->handle($request, $user, $request->boolean('remember'));
+        Activity::log(ActivityEvent::AuthLocalRegistrationCompleted, subject: $user, causer: $user);
 
         return app(RegisterResponse::class);
     }

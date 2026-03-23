@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityEvent;
 use App\Enums\TeamType;
+use App\Models\Traits\LogsModelActivity;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,7 +19,12 @@ class Team extends JetstreamTeam
     /** @use HasFactory<TeamFactory> */
     use HasFactory;
 
+    use LogsModelActivity;
     use SoftDeletes;
+
+    protected static array $recordEvents = [
+        'created',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -61,5 +68,21 @@ class Team extends JetstreamTeam
     public function workflowStores(): HasMany
     {
         return $this->hasMany(WorkflowStore::class);
+    }
+
+    protected function activityEventMap(): array
+    {
+        return [
+            'created' => ActivityEvent::TeamCreated->value,
+        ];
+    }
+
+    protected function activityLogAttributes(): array
+    {
+        return [
+            'user_id',
+            'name',
+            'type',
+        ];
     }
 }

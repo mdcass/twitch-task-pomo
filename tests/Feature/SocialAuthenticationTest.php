@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActivityEvent;
 use App\Enums\ExternalAuthProvider;
 use App\Enums\OauthFlow;
 use App\Enums\TeamType;
 use App\Enums\UserSettingKey;
+use App\Models\Activity;
 use App\Models\User;
 use App\Models\WorkflowStore;
 use App\Notifications\Auth\VerifyEmail;
@@ -149,6 +151,15 @@ class SocialAuthenticationTest extends TestCase
         $response->assertSessionHasErrors([
             'social' => 'Your Twitch sign-in session expired. Please try again.',
         ]);
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialSessionInvalid->value)
+            ->sole();
+
+        $this->assertSame('oauth/callback/twitch', $activity->getExtraProperty('request_path'));
+        $this->assertSame('handshake_missing', $activity->getExtraProperty('reason'));
+        $this->assertNull($activity->team_id);
+        $this->assertNull($activity->causer_id);
     }
 
     public function test_callback_with_provider_mismatch_redirects_to_login_with_expired_error(): void
@@ -167,6 +178,13 @@ class SocialAuthenticationTest extends TestCase
             'social' => 'Your Twitch sign-in session expired. Please try again.',
         ]);
         $this->assertNull(session('workflow_store_id.'.SocialAuthHandshakeWorkflow::class));
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialSessionInvalid->value)
+            ->sole();
+
+        $this->assertSame('oauth/callback/twitch', $activity->getExtraProperty('request_path'));
+        $this->assertSame('provider_mismatch', $activity->getExtraProperty('reason'));
     }
 
     public function test_register_screen_renders_both_legal_sections_when_terms_feature_is_enabled(): void
@@ -246,6 +264,25 @@ class SocialAuthenticationTest extends TestCase
         $this->assertSame('closed', $store->status->value);
         $this->assertInstanceOf(SocialAuthHandshakeWorkflow::class, $workflow);
         $this->assertTrue($workflow->isState('login_complete'));
+
+        $loginActivity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialLoginSucceeded->value)
+            ->sole();
+
+        $providerActivity = Activity::query()
+            ->where('event', ActivityEvent::ProviderAuthUpdated->value)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($providerActivity);
+        $this->assertSame('oauth/callback/twitch', $loginActivity->getExtraProperty('request_path'));
+        $this->assertSame('twitch', $loginActivity->getExtraProperty('provider'));
+        $this->assertSame($user->current_team_id, $loginActivity->team_id);
+        $this->assertSame('oauth/callback/twitch', $providerActivity->getExtraProperty('request_path'));
+        $this->assertSame($user->current_team_id, $providerActivity->team_id);
+        $this->assertArrayNotHasKey('access_token', $providerActivity->changes->get('attributes', []));
+        $this->assertArrayNotHasKey('refresh_token', $providerActivity->changes->get('attributes', []));
+        $this->assertArrayNotHasKey('profile', $providerActivity->changes->get('attributes', []));
     }
 
     public function test_existing_discord_provider_auth_logs_in_and_refreshes_provider_metadata(): void
@@ -359,6 +396,14 @@ class SocialAuthenticationTest extends TestCase
         $this->assertInstanceOf(SocialAuthHandshakeWorkflow::class, $workflow);
         $this->assertTrue($workflow->isState('callback_failed'));
         $this->assertSame('provider_auth_missing', $workflow->getContextValue('fail_callback', 'reason'));
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialLoginMissingLink->value)
+            ->sole();
+
+        $this->assertSame('oauth/callback/twitch', $activity->getExtraProperty('request_path'));
+        $this->assertSame('provider_auth_missing', $activity->getExtraProperty('reason'));
+        $this->assertNull($activity->team_id);
     }
 
     public function test_first_time_social_signup_creates_user_provider_auth_and_legal_acceptance(): void
@@ -435,6 +480,26 @@ class SocialAuthenticationTest extends TestCase
         $this->assertInstanceOf(SocialAuthHandshakeWorkflow::class, $workflow);
         $this->assertTrue($workflow->isState('registration_complete'));
         $this->assertSame($user->email, $workflow->getContextValue('complete_registration', 'registered_email'));
+
+        $registrationActivity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialRegistrationCompleted->value)
+            ->sole();
+        $providerActivity = Activity::query()
+            ->where('event', ActivityEvent::ProviderAuthCreated->value)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($providerActivity);
+        $this->assertSame('oauth/callback/twitch', $registrationActivity->getExtraProperty('request_path'));
+        $this->assertSame($user->current_team_id, $registrationActivity->team_id);
+        $this->assertSame('2026-03-22T10:00:00+00:00', data_get($registrationActivity->properties->toArray(), 'legal_acceptance.terms_of_service_accepted_at'));
+        $this->assertSame('2026-03-22T10:00:00+00:00', data_get($registrationActivity->properties->toArray(), 'legal_acceptance.privacy_policy_accepted_at'));
+        $this->assertSame('registration', data_get($registrationActivity->properties->toArray(), 'legal_acceptance.source'));
+        $this->assertSame('oauth/callback/twitch', $providerActivity->getExtraProperty('request_path'));
+        $this->assertSame($user->current_team_id, $providerActivity->team_id);
+        $this->assertArrayNotHasKey('access_token', $providerActivity->changes->get('attributes', []));
+        $this->assertArrayNotHasKey('refresh_token', $providerActivity->changes->get('attributes', []));
+        $this->assertArrayNotHasKey('profile', $providerActivity->changes->get('attributes', []));
     }
 
     public function test_matching_local_email_does_not_auto_link_or_authenticate(): void
@@ -496,6 +561,16 @@ class SocialAuthenticationTest extends TestCase
         $this->assertInstanceOf(SocialRegistrationWorkflow::class, $workflow);
         $this->assertTrue($workflow->isState('existing_account_handoff'));
         $this->assertSame('existing@example.test', $workflow->getContextValue('show_existing_account_handoff', 'attempted_email'));
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialRegistrationBlockedExistingEmail->value)
+            ->sole();
+
+        $this->assertSame('oauth/callback/discord', $activity->getExtraProperty('request_path'));
+        $this->assertSame('existing_local_email_match', $activity->getExtraProperty('reason'));
+        $this->assertSame(SocialRegistrationWorkflow::class, data_get($activity->properties->toArray(), 'workflow.class'));
+        $this->assertSame('existing_account_handoff', data_get($activity->properties->toArray(), 'workflow.state'));
+        $this->assertNull($activity->team_id);
     }
 
     public function test_missing_provider_email_starts_social_registration_email_workflow(): void
@@ -744,6 +819,14 @@ class SocialAuthenticationTest extends TestCase
         $this->assertSame('closed', $store->status->value);
         $this->assertInstanceOf(SocialAuthHandshakeWorkflow::class, $workflow);
         $this->assertTrue($workflow->isState('callback_failed'));
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialCallbackFailed->value)
+            ->sole();
+
+        $this->assertSame('oauth/callback/discord', $activity->getExtraProperty('request_path'));
+        $this->assertSame('provider_callback_exception', $activity->getExtraProperty('reason'));
+        $this->assertSame('register', $activity->getExtraProperty('flow'));
     }
 
     public function test_base_test_case_prevents_unmocked_http_requests(): void

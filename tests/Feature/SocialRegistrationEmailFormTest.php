@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActivityEvent;
 use App\Enums\TeamType;
 use App\Livewire\Auth\SocialRegistrationEmailForm;
+use App\Models\Activity;
 use App\Models\User;
 use App\Models\WorkflowStore;
 use App\Notifications\Auth\VerifyEmail;
@@ -100,6 +102,16 @@ class SocialRegistrationEmailFormTest extends TestCase
         $this->assertInstanceOf(SocialRegistrationWorkflow::class, $workflow);
         $this->assertTrue($workflow->isState('complete'));
         $this->assertSame($user->email, $workflow->getContextValue('complete_registration', 'registered_email'));
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialRegistrationCompleted->value)
+            ->sole();
+
+        $this->assertSame('livewire/update', $activity->getExtraProperty('request_path'));
+        $this->assertSame($user->current_team_id, $activity->team_id);
+        $this->assertSame(SocialRegistrationWorkflow::class, data_get($activity->properties->toArray(), 'workflow.class'));
+        $this->assertSame('complete', data_get($activity->properties->toArray(), 'workflow.state'));
+        $this->assertSame(0, Activity::query()->where('subject_type', WorkflowStore::class)->count());
     }
 
     public function test_social_registration_email_form_transitions_to_existing_account_handoff(): void
@@ -141,6 +153,16 @@ class SocialRegistrationEmailFormTest extends TestCase
         $this->assertInstanceOf(SocialRegistrationWorkflow::class, $workflow);
         $this->assertTrue($workflow->isState('existing_account_handoff'));
         $this->assertSame('existing@example.test', $workflow->getContextValue('show_existing_account_handoff', 'attempted_email'));
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialRegistrationBlockedExistingEmail->value)
+            ->sole();
+
+        $this->assertSame('livewire/update', $activity->getExtraProperty('request_path'));
+        $this->assertSame('entered_existing_email', $activity->getExtraProperty('reason'));
+        $this->assertSame(SocialRegistrationWorkflow::class, data_get($activity->properties->toArray(), 'workflow.class'));
+        $this->assertSame('existing_account_handoff', data_get($activity->properties->toArray(), 'workflow.state'));
+        $this->assertSame(0, Activity::query()->where('subject_type', WorkflowStore::class)->count());
     }
 
     public function test_social_registration_email_form_maps_invalid_email_errors_inline(): void

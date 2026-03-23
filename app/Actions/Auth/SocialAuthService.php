@@ -2,8 +2,10 @@
 
 namespace App\Actions\Auth;
 
+use App\Enums\ActivityEvent;
 use App\Enums\ExternalAuthProvider;
 use App\Enums\OauthFlow;
+use App\Models\Activity;
 use App\Models\ProviderAuth;
 use App\Models\User;
 use App\Workflows\Auth\SocialAuthHandshakeWorkflow;
@@ -55,6 +57,11 @@ class SocialAuthService
         $handshake = SocialAuthHandshakeWorkflow::fromSession();
 
         if (! $handshake instanceof SocialAuthHandshakeWorkflow) {
+            Activity::log(ActivityEvent::AuthSocialSessionInvalid, [
+                'provider' => $provider->value,
+                'reason' => 'handshake_missing',
+            ]);
+
             return redirect()->route('login')->withErrors([
                 'social' => 'Your '.$provider->label().' sign-in session expired. Please try again.',
             ]);
@@ -62,6 +69,11 @@ class SocialAuthService
 
         if ($handshake->getInitialContextValue('provider') !== $provider->value) {
             $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
+            Activity::log(ActivityEvent::AuthSocialSessionInvalid, array_filter([
+                'provider' => $provider->value,
+                'flow' => OauthFlow::tryFrom((string) $handshake->getInitialContextValue('flow'))?->value,
+                'reason' => 'provider_mismatch',
+            ], fn (mixed $value): bool => $value !== null));
 
             return redirect()->route('login')->withErrors([
                 'social' => 'Your '.$provider->label().' sign-in session expired. Please try again.',
@@ -79,6 +91,11 @@ class SocialAuthService
             ]);
             $handshake->close()->saveStore();
             $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
+            Activity::log(ActivityEvent::AuthSocialCallbackFailed, [
+                'provider' => $provider->value,
+                'flow' => $flow->value,
+                'reason' => 'provider_callback_exception',
+            ]);
 
             return $this->redirectForFlow($flow, [
                 'social' => 'We could not complete your '.$provider->label().' sign-in. Please try again.',
@@ -100,6 +117,10 @@ class SocialAuthService
             $handshake->close()->saveStore();
             $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
             $this->login($request, $providerAuth->user);
+            Activity::log(ActivityEvent::AuthSocialLoginSucceeded, [
+                'provider' => $provider->value,
+                'flow' => OauthFlow::Login->value,
+            ], subject: $providerAuth->fresh(), causer: $providerAuth->user);
 
             return redirect()->intended(route('dashboard'));
         }
@@ -112,6 +133,11 @@ class SocialAuthService
             ]);
             $handshake->close()->saveStore();
             $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
+            Activity::log(ActivityEvent::AuthSocialLoginMissingLink, [
+                'provider' => $provider->value,
+                'flow' => OauthFlow::Login->value,
+                'reason' => 'provider_auth_missing',
+            ]);
 
             return redirect()->route('register')->withErrors([
                 'social' => 'No '.$provider->label().' account is linked here yet. Start from registration to create a new account.',
@@ -169,6 +195,20 @@ class SocialAuthService
         $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
 
         $this->completeRegistration->handle($request, $user);
+        $properties = [
+            'provider' => $provider->value,
+            'flow' => OauthFlow::Register->value,
+        ];
+
+        if (($legalAcceptance = $this->resolveLegalAcceptance($handshake)) !== null) {
+            $properties['legal_acceptance'] = [
+                'terms_of_service_accepted_at' => $legalAcceptance['terms_of_service_accepted_at'] ?? null,
+                'privacy_policy_accepted_at' => $legalAcceptance['privacy_policy_accepted_at'] ?? null,
+                'source' => 'registration',
+            ];
+        }
+
+        Activity::log(ActivityEvent::AuthSocialRegistrationCompleted, $properties, subject: $user->fresh(), causer: $user);
 
         return redirect()->route('verification.notice');
     }
@@ -359,6 +399,18 @@ class SocialAuthService
         $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
 
         $workflow->saveStore(useSession: true);
+
+        if ($startBlocked) {
+            Activity::log(ActivityEvent::AuthSocialRegistrationBlockedExistingEmail, [
+                'provider' => $provider->value,
+                'flow' => OauthFlow::Register->value,
+                'reason' => 'existing_local_email_match',
+                'workflow' => [
+                    'class' => SocialRegistrationWorkflow::class,
+                    'state' => 'existing_account_handoff',
+                ],
+            ]);
+        }
 
         return redirect()->route('register.social-email');
     }

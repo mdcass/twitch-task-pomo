@@ -4,6 +4,9 @@ namespace App\Livewire\Auth;
 
 use App\Actions\Auth\CompleteSocialRegistration;
 use App\Actions\Auth\CompleteRegistration;
+use App\Enums\ActivityEvent;
+use App\Enums\ExternalAuthProvider;
+use App\Models\Activity;
 use App\Workflows\Auth\SocialRegistrationWorkflow;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\ValidationException;
@@ -56,6 +59,15 @@ class SocialRegistrationEmailForm extends Component
                     'attempted_email' => $email,
                 ]);
                 $workflow->saveStore(useSession: true);
+                Activity::log(ActivityEvent::AuthSocialRegistrationBlockedExistingEmail, [
+                    'provider' => $this->provider()->value,
+                    'flow' => 'register',
+                    'reason' => 'entered_existing_email',
+                    'workflow' => [
+                        'class' => SocialRegistrationWorkflow::class,
+                        'state' => 'existing_account_handoff',
+                    ],
+                ]);
 
                 return null;
             }
@@ -93,6 +105,24 @@ class SocialRegistrationEmailForm extends Component
         session()->forget('workflow_store_id.'.SocialRegistrationWorkflow::class);
 
         $completeRegistration->handle(request(), $user);
+        $properties = [
+            'provider' => $this->provider()->value,
+            'flow' => 'register',
+            'workflow' => [
+                'class' => SocialRegistrationWorkflow::class,
+                'state' => 'complete',
+            ],
+        ];
+
+        if (($legalAcceptance = $workflow->getInitialContextValue('legal_acceptance')) !== null) {
+            $properties['legal_acceptance'] = [
+                'terms_of_service_accepted_at' => $legalAcceptance['terms_of_service_accepted_at'] ?? null,
+                'privacy_policy_accepted_at' => $legalAcceptance['privacy_policy_accepted_at'] ?? null,
+                'source' => 'registration',
+            ];
+        }
+
+        Activity::log(ActivityEvent::AuthSocialRegistrationCompleted, $properties, subject: $user->fresh(), causer: $user);
 
         return redirect()->route('verification.notice');
     }
@@ -161,5 +191,10 @@ class SocialRegistrationEmailForm extends Component
         }
 
         return Crypt::decryptString($value);
+    }
+
+    private function provider(): ExternalAuthProvider
+    {
+        return ExternalAuthProvider::from((string) $this->workflow()?->getInitialContextValue('provider'));
     }
 }

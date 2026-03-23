@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityEvent;
 use App\Enums\Models\WorkflowStatus;
 use App\Enums\TeamMemberRole;
 use App\Models\Concerns\HasNotifications;
+use App\Models\Traits\LogsModelActivity;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Collection;
@@ -31,9 +33,15 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasNotifications;
     use HasProfilePhoto;
     use HasTeams;
+    use LogsModelActivity;
     use Notifiable;
     use SoftDeletes;
     use TwoFactorAuthenticatable;
+
+    protected static array $recordEvents = [
+        'created',
+        'updated',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -203,5 +211,23 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return $store->workflow()->isState($completionState);
+    }
+
+    protected function activityEventMap(): array
+    {
+        return [
+            'created' => ActivityEvent::UserCreated->value,
+            'updated' => ActivityEvent::UserUpdated->value,
+        ];
+    }
+
+    protected function activityLogAttributes(): array
+    {
+        return [
+            'name',
+            'email',
+            'email_verified_at',
+            'current_team_id',
+        ];
     }
 }

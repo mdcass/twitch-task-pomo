@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActivityEvent;
+use App\Models\Activity;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -38,6 +40,14 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthLocalLoginSucceeded->value)
+            ->sole();
+
+        $this->assertSame('login', $activity->getExtraProperty('request_path'));
+        $this->assertSame($user->current_team_id, $activity->team_id);
+        $this->assertTrue($activity->subject->is($user));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
@@ -50,5 +60,13 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertGuest();
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthLocalLoginFailed->value)
+            ->sole();
+
+        $this->assertSame('login', $activity->getExtraProperty('request_path'));
+        $this->assertSame($user->current_team_id, $activity->team_id);
+        $this->assertTrue($activity->subject->is($user));
     }
 }

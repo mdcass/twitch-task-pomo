@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActivityEvent;
 use App\Enums\ExternalAuthProvider;
 use App\Enums\UserSettingKey;
+use App\Models\Activity;
 use App\Models\ProviderAuth;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -159,5 +162,40 @@ class AuthPersistenceTest extends TestCase
                 'history' => [],
             ],
         ]);
+    }
+
+    public function test_activity_log_allows_explicit_team_override_and_scrubs_forbidden_properties(): void
+    {
+        $team = Team::factory()->create();
+
+        $activity = Activity::log(
+            ActivityEvent::AuthSocialCallbackFailed,
+            [
+                'provider' => ExternalAuthProvider::Discord->value,
+                'flow' => 'register',
+                'reason' => 'provider_callback_exception',
+                'access_token' => 'secret-access',
+                'refresh_token' => 'secret-refresh',
+                'profile' => [
+                    'username' => 'sensitive',
+                ],
+                'context' => [
+                    'token' => 'nested-secret',
+                    'safe' => 'kept',
+                ],
+            ],
+            teamId: $team->id,
+        );
+
+        $this->assertNotNull($activity);
+        $this->assertSame($team->id, $activity->team_id);
+        $this->assertSame('discord', $activity->getExtraProperty('provider'));
+        $this->assertSame('register', $activity->getExtraProperty('flow'));
+        $this->assertSame('provider_callback_exception', $activity->getExtraProperty('reason'));
+        $this->assertNull($activity->getExtraProperty('access_token'));
+        $this->assertNull($activity->getExtraProperty('refresh_token'));
+        $this->assertNull($activity->getExtraProperty('profile'));
+        $this->assertNull(data_get($activity->properties->toArray(), 'context.token'));
+        $this->assertSame('kept', data_get($activity->properties->toArray(), 'context.safe'));
     }
 }

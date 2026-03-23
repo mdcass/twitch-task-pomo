@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityEvent;
 use App\Enums\ExternalAuthProvider;
+use App\Models\Traits\LogsModelActivity;
 use Database\Factories\ProviderAuthFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +16,13 @@ class ProviderAuth extends Model
     /** @use HasFactory<ProviderAuthFactory> */
     use HasFactory;
 
+    use LogsModelActivity;
     use SoftDeletes;
+
+    protected static array $recordEvents = [
+        'created',
+        'updated',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -67,5 +75,26 @@ class ProviderAuth extends Model
     public function isRevoked(): bool
     {
         return $this->trashed();
+    }
+
+    protected function activityEventMap(): array
+    {
+        return [
+            'created' => ActivityEvent::ProviderAuthCreated->value,
+            'updated' => ActivityEvent::ProviderAuthUpdated->value,
+        ];
+    }
+
+    protected function activityLogAttributes(): array
+    {
+        return [
+            'provider',
+            'provider_user_id',
+            'provider_email',
+            'avatar_url',
+            'token_expires_at',
+            'scopes',
+            'last_used_at',
+        ];
     }
 }

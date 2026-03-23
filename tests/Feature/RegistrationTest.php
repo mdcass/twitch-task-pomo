@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ActivityEvent;
 use App\Enums\TeamType;
+use App\Models\Activity;
 use App\Notifications\Auth\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -74,5 +76,22 @@ class RegistrationTest extends TestCase
         $this->assertSame('Test\'s Streamer Profile', $user->currentTeam->name);
         $this->assertNull($user->email_verified_at);
         Notification::assertSentToTimes($user, VerifyEmail::class, 1);
+
+        $registrationActivity = Activity::query()
+            ->where('event', ActivityEvent::AuthLocalRegistrationCompleted->value)
+            ->sole();
+
+        $this->assertSame('register', $registrationActivity->getExtraProperty('request_path'));
+        $this->assertSame($user->current_team_id, $registrationActivity->team_id);
+        $this->assertTrue($registrationActivity->subject->is($user));
+
+        $activityPaths = Activity::query()
+            ->pluck('properties')
+            ->map(fn ($properties) => $properties['request_path'] ?? null)
+            ->unique()
+            ->values()
+            ->all();
+
+        $this->assertSame(['register'], $activityPaths);
     }
 }

@@ -690,8 +690,8 @@ Create the account, team-context, and onboarding foundation for streamer-oriente
 - `BP-TASK-P1-10` DONE Add Twitch and Discord Socialite redirect and callback flows on `/auth/{provider}/redirect` and `/auth/{provider}/callback`.
 - `BP-TASK-P1-11` DONE Build persisted onboarding workflows for local signup where a provider returns no email address; UI using the structure of the registration page should collect the email address from the user at this point. Will need branching logic if the email address already exists as a user, implemented as a Livewire component.
 - `BP-TASK-P1-12` DONE Implement secure no-auto-link and account-claim behavior for provider callbacks that match existing local emails.
-- `BP-TASK-P1-13` Add feature tests for local auth, first-time social signup, and viewer versus streamer profile creation. Add Pest based browser tests for all aswell.
-- `BP-TASK-P1-14` Add Spatie activity logging to authentication surface implemented over the last few commits. No duplication of what is stored in workflows is required, however coherent logging is expected. Log event names should be enum backed. The local project `~/Projects/multistream-app` shows an adequate example of implementation, including a smart Model "tapping" architecture; however i'd go one better and look to introduce our own Activity model where any/all logging logic sits as the entrypoint rather than the spatie helper for easy extension later. This task should also encompass `BP-TASK-P1-17` and `BP-TASK-P1-18` - including tests mentioned in `BP-TASK-P1-19`
+- `BP-TASK-P1-13` DONE Add feature tests for local auth, first-time social signup, and viewer versus streamer profile creation. Add Pest based browser tests for all aswell.
+- `BP-TASK-P1-14` DONE Add Spatie activity logging to authentication surface implemented over the last few commits. No duplication of what is stored in workflows is required, however coherent logging is expected. Log event names should be enum backed. The local project `~/Projects/multistream-app` shows an adequate example of implementation, including a smart Model "tapping" architecture; however i'd go one better and look to introduce our own Activity model where any/all logging logic sits as the entrypoint rather than the spatie helper for easy extension later. This task should also encompass `BP-TASK-P1-17` and `BP-TASK-P1-18` - including tests mentioned in `BP-TASK-P1-19`
 
 #### `BP-EPIC-P1-03` Shared workflow, modal, and activity primitives
 
@@ -700,9 +700,9 @@ Import the shared interaction primitives early so step-based flows and auditabil
 - `BP-TASK-P1-14` DONE Copy the shared workflow classes and Livewire integration from `~/Projects/multistream-app` into this codebase.
 - `BP-TASK-P1-15` Copy the shared modal component from `~/Projects/multistream-app` and wire it into the app UI layer.
 - `BP-TASK-P1-16` DONE Implement `workflow_stores` migration, model, and persistence wiring with team-aware ownership fields.
-- `BP-TASK-P1-17` Add enum-backed activity event definitions and attach logging to onboarding and core lifecycle actions.
-- `BP-TASK-P1-18` Exclude provider tokens and other sensitive values from activity logs and model change payloads.
-- `BP-TASK-P1-19` Add tests for workflow transition persistence, guard failure capture, and activity-log redaction.
+- `BP-TASK-P1-17` DONE Add enum-backed activity event definitions and attach logging to onboarding and core lifecycle actions.
+- `BP-TASK-P1-18` DONE Exclude provider tokens and other sensitive values from activity logs and model change payloads.
+- `BP-TASK-P1-19` DONE Add tests for workflow transition persistence, guard failure capture, and activity-log redaction.
 
 #### `BP-EPIC-P1-04` Core overlay domain, local vertical slice, and developer testing tools
 
