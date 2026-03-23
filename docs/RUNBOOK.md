@@ -9,6 +9,7 @@ This runbook tracks the implementation state of the repository at `HEAD`.
 - `docs/agents/*.md` now hold agent-facing operating guidance. This file owns the current implementation narrative and active priorities.
 - Initial implementation should still follow the Phase 1 Foundation MVP before public Twitch bot or billing work expands the surface area.
 - The core Phase 1 overlay domain foundation now includes schema, model, enum, and factory coverage for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions`.
+- Local-only widget preview tooling now exists at `/local/widgets`, `/local/widgets/task-list`, and `/local/widgets/pomodoro` in the `local` and `testing` environments. These routes are stateless external-widget simulators for future canvas embedding tests and do not depend on database state or the authenticated shell.
 
 ## Workflow-Backed Auth And Onboarding At `HEAD`
 

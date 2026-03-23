@@ -698,7 +698,7 @@ Create the account, team-context, and onboarding foundation for streamer-oriente
 Import the shared interaction primitives early so step-based flows and auditability become the default implementation path.
 
 - `BP-TASK-P1-14` DONE Copy the shared workflow classes and Livewire integration from `~/Projects/multistream-app` into this codebase.
-- `BP-TASK-P1-15` Copy the shared modal component from `~/Projects/multistream-app` and wire it into the app UI layer.
+- `BP-TASK-P1-15` Copy the shared modal component from `~/Projects/multistream-app` and wire it into the app UI layer. Look at the commit it was introduced in to get a sense of what to bring over.
 - `BP-TASK-P1-16` DONE Implement `workflow_stores` migration, model, and persistence wiring with team-aware ownership fields.
 - `BP-TASK-P1-17` DONE Add enum-backed activity event definitions and attach logging to onboarding and core lifecycle actions.
 - `BP-TASK-P1-18` DONE Exclude provider tokens and other sensitive values from activity logs and model change payloads.
@@ -710,8 +710,8 @@ Deliver the first internal end-to-end overlay prototype without depending on liv
 
 - `BP-TASK-P1-20` DONE Implement the Phase 1 schema and model skeletons for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions`.
 - `BP-TASK-P1-21` DONE Add factories and test helpers for teams, streams, canvases, tasks, and Pomodoro session setup.
-- `BP-TASK-P1-22` Build local-only testing widgets for a list of tasks and a pomodoro widget which can be used in future canvas testing.
-- `BP-TASK-P1-23` Build a local-only canvas creation flow that attaches default task and Pomodoro widget instances.
+- `BP-TASK-P1-22` DONE Build local-only testing widgets for a list of tasks and a pomodoro widget which can be used in future canvas testing.
+- `BP-TASK-P1-23` Build the canvas creation and general CRUD flow. 
 - `BP-TASK-P1-24` Implement a single-canvas overlay render path driven by synthetic stream-session state.
 - `BP-TASK-P1-25` Build a developer testing panel that can start or stop test sessions and inject synthetic chat commands.
 - `BP-TASK-P1-26` Add focused feature tests for canvas rendering, widget updates, and developer-panel flows.

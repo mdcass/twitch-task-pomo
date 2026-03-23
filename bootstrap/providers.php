@@ -4,6 +4,7 @@ use App\Providers\AppServiceProvider;
 use App\Providers\EventServiceProvider;
 use App\Providers\FortifyServiceProvider;
 use App\Providers\JetstreamServiceProvider;
+use App\Providers\LocalToolingServiceProvider;
 use App\Providers\TestingServiceProvider;
 use SocialiteProviders\Manager\ServiceProvider as SocialiteProvidersServiceProvider;
 
@@ -13,5 +14,6 @@ return [
     FortifyServiceProvider::class,
     JetstreamServiceProvider::class,
     SocialiteProvidersServiceProvider::class,
+    LocalToolingServiceProvider::class,
     TestingServiceProvider::class,
 ];
