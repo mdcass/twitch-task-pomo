@@ -9,12 +9,12 @@
         </x-mail::header>
     </x-slot:header>
 
-    {!! $slot !!}
+    {!! \App\Support\Mail\MarkdownSlot::normalize($slot) !!}
 
     @isset($subcopy)
         <x-slot:subcopy>
             <x-mail::subcopy>
-                {!! $subcopy !!}
+                {!! \App\Support\Mail\MarkdownSlot::normalize($subcopy) !!}
             </x-mail::subcopy>
         </x-slot:subcopy>
     @endisset

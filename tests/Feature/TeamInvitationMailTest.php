@@ -29,6 +29,9 @@ class TeamInvitationMailTest extends TestCase
         $this->assertStringContainsString(ProductBrand::productTagline(), $html);
         $this->assertStringContainsString('You have been invited to join '.$team->name.' on '.ProductBrand::productName().'.', $html);
         $this->assertStringContainsString('Accept Invitation', $html);
+        $this->assertStringNotContainsString('<pre', $html);
+        $this->assertStringNotContainsString('&lt;table', $html);
         $this->assertStringNotContainsString('notification-logo-v2.1.png', $html);
+        $this->assertMatchesRegularExpression('/<a[^>]*class="button button-primary"/', $html);
     }
 }

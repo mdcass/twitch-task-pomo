@@ -46,7 +46,7 @@
                                 role="presentation">
                                 <tr>
                                     <td class="content-cell">
-                                        {!! Illuminate\Mail\Markdown::parse($slot) !!}
+                                        {{ \App\Support\Mail\MarkdownSlot::toHtml($slot) }}
 
                                         {!! $subcopy ?? '' !!}
                                     </td>

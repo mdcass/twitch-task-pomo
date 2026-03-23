@@ -1,8 +1,8 @@
-{!! strip_tags($header ?? '') !!}
+{!! \App\Support\Mail\MarkdownSlot::toText($header ?? '') !!}
 
-{!! strip_tags($slot) !!}
+{!! \App\Support\Mail\MarkdownSlot::toText($slot) !!}
 @isset($subcopy)
-    {!! strip_tags($subcopy) !!}
+    {!! \App\Support\Mail\MarkdownSlot::toText($subcopy) !!}
 @endisset
 
-{!! strip_tags($footer ?? '') !!}
+{!! \App\Support\Mail\MarkdownSlot::toText($footer ?? '') !!}

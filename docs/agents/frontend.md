@@ -53,6 +53,7 @@ Read this file before changing Blade layouts, Livewire components, Phoenix-backe
 
 - Run the most relevant feature tests when changing layouts, auth flows, or Livewire mutations.
 - When finishing Blade edits under `resources/views/`, run `blade-formatter --write "resources/views/**/*.blade.php"` so the committed templates match the repository formatter.
+- Product-owned Markdown mail views remain formatter-safe through the shared `App\Support\Mail\MarkdownSlot` normalization layer, so keep those templates on the normal formatter path.
 - When changing the shared shell or auth pages, confirm the product-owned runtime files still match the intended Phoenix reference without importing upstream built assets.
 - Update `docs/RUNBOOK.md` if the implemented shell or auth surface changes materially.
 

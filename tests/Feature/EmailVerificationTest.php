@@ -96,7 +96,10 @@ class EmailVerificationTest extends TestCase
             $this->assertStringContainsString(ProductBrand::productTagline(), $html);
             $this->assertStringContainsString('Confirm Email Address', $html);
             $this->assertStringContainsString('finish setting up your account', $html);
+            $this->assertStringNotContainsString('<pre', $html);
+            $this->assertStringNotContainsString('&lt;table', $html);
             $this->assertStringNotContainsString('notification-logo-v2.1.png', $html);
+            $this->assertMatchesRegularExpression('/<a[^>]*class="button button-primary"/', $html);
 
             return true;
         });
