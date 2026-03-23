@@ -53,6 +53,13 @@ class AppShellNavigation
                         'active' => ['dashboard'],
                         'icon' => 'uil uil-estate',
                     ],
+                    [
+                        'key' => 'canvases',
+                        'label' => __('Canvases'),
+                        'route' => 'canvases.index',
+                        'active' => ['canvases.*'],
+                        'icon' => 'uil uil-panorama-h',
+                    ],
                 ],
             ],
             [

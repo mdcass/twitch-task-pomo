@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Collection;
+use Livewire\Livewire;
+use Spatie\Activitylog\Facades\CauserResolver;
 use Spatie\Activitylog\Models\Activity as SpatieActivity;
 
 class Activity extends SpatieActivity
@@ -24,10 +26,12 @@ class Activity extends SpatieActivity
                 : (array) $activity->properties);
             $activity->properties = collect(self::scrubProperties($activity->properties->toArray()));
 
-            $requestPath = request()?->path();
+            foreach (self::resolveRequestContext() as $key => $value) {
+                if ($value === null || $activity->properties->has($key)) {
+                    continue;
+                }
 
-            if (is_string($requestPath) && $requestPath !== '' && ! $activity->properties->has('request_path')) {
-                $activity->properties = $activity->properties->put('request_path', $requestPath);
+                $activity->properties = $activity->properties->put($key, $value);
             }
 
             if (is_int($activity->team_id)) {
@@ -71,6 +75,17 @@ class Activity extends SpatieActivity
                     ?? self::normalizeTeamId($teamId);
             })
             ->log($event->value);
+    }
+
+    public static function withCauser(?Model $causer, callable $callback): mixed
+    {
+        CauserResolver::setCauser($causer);
+
+        try {
+            return $callback();
+        } finally {
+            CauserResolver::setCauser(null);
+        }
     }
 
     public function team(): BelongsTo
@@ -140,6 +155,64 @@ class Activity extends SpatieActivity
         }
 
         return null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function resolveRequestContext(): array
+    {
+        $context = [];
+        $requestPath = request()?->path();
+
+        if (is_string($requestPath) && $requestPath !== '') {
+            $context['request_path'] = $requestPath;
+        }
+
+        if (! self::isLivewireRequest()) {
+            return $context;
+        }
+
+        $originalPath = Livewire::originalPath();
+
+        if (is_string($originalPath) && $originalPath !== '') {
+            $context['request_path'] = $originalPath;
+        }
+
+        $componentName = Livewire::current()?->getName() ?? self::livewireSnapshotValue('memo.name');
+        $methodName = request()->input('components.0.calls.0.method');
+
+        if (is_string($componentName) && $componentName !== '') {
+            $context['livewire_component'] = $componentName;
+        }
+
+        if (is_string($methodName) && $methodName !== '') {
+            $context['livewire_method'] = $methodName;
+        }
+
+        return $context;
+    }
+
+    private static function isLivewireRequest(): bool
+    {
+        return app()->bound('livewire') && Livewire::isLivewireRequest();
+    }
+
+    private static function livewireSnapshotValue(string $path): mixed
+    {
+        $snapshot = request()->input('components.0.snapshot');
+
+        if (! is_string($snapshot) || $snapshot === '') {
+            return null;
+        }
+
+        $decodedSnapshot = json_decode($snapshot, true);
+
+        if (! is_array($decodedSnapshot)) {
+            return null;
+        }
+
+        return data_get($decodedSnapshot, $path);
     }
 
     /**

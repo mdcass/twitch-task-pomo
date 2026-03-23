@@ -105,16 +105,8 @@ body {
     box-shadow: var(--bs-box-shadow-sm);
 }
 
-.jetstream-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(3px);
-    z-index: 1040;
-}
-
 .jetstream-modal {
-    z-index: 1050;
+    z-index: 1055;
 }
 
 .twitch-brand-composite-mark {
@@ -163,4 +155,70 @@ body {
     flex-shrink: 0;
     line-height: 0;
     overflow: visible;
+}
+
+.twitch-content-top-nav {
+    position: static;
+    top: auto;
+
+    @include media-breakpoint-up(lg) {
+        position: sticky;
+        top: var(--phoenix-navbar-top-height);
+    }
+}
+
+[data-content-top-shell] {
+    display: contents;
+}
+
+.twitch-content-top-nav__section--primary nav[aria-label='breadcrumb'] {
+    min-width: max-content;
+}
+
+.twitch-content-top-nav__section--primary .breadcrumb {
+    flex-wrap: nowrap;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.twitch-content-top-nav__section--primary .breadcrumb-item,
+.twitch-content-top-nav__section--primary .breadcrumb-item > a {
+    white-space: nowrap;
+}
+
+.twitch-content-top-nav__band .simplebar-content {
+    min-width: 100%;
+}
+
+.twitch-content-top-nav__band .simplebar-track.simplebar-horizontal {
+    height: 0.5rem;
+}
+
+.twitch-content-top-nav__band .simplebar-track.simplebar-horizontal .simplebar-scrollbar::before {
+    inset: 1px 0;
+}
+
+// Theme table overrides
+.table > thead > tr > th:first-child,
+.table > tbody > tr > td:first-child,
+.table > tfoot > tr > td:first-child {
+    padding-left: $table-cell-padding-x;
+}
+
+.table > thead > tr > th:last-child,
+.table > tbody > tr > td:last-child,
+.table > tfoot > tr > td:last-child {
+    padding-right: $table-cell-padding-x;
+}
+
+.table.table-edge-flush > thead > tr > th:first-child,
+.table.table-edge-flush > tbody > tr > td:first-child,
+.table.table-edge-flush > tfoot > tr > td:first-child {
+    padding-left: 0;
+}
+
+.table.table-edge-flush > thead > tr > th:last-child,
+.table.table-edge-flush > tbody > tr > td:last-child,
+.table.table-edge-flush > tfoot > tr > td:last-child {
+    padding-right: 0;
 }

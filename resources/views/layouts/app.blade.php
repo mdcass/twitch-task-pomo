@@ -49,6 +49,12 @@
         <x-shell.layout :layout="$layout" :layout-definition="$layoutDefinition" :sections="$sections" :top-navigation-items="$topNavigationItems" :utility="$utility"
             :product-name="$productName" />
         <div class="content">
+            @if (isset($contentTop))
+                <div data-content-top-shell>
+                    {{ $contentTop }}
+                </div>
+            @endif
+
             @if (isset($header))
                 <header>
                     {{ $header }}

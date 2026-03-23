@@ -9,7 +9,7 @@ use App\Enums\ExternalAuthProvider;
 use App\Models\Activity;
 use App\Workflows\Auth\SocialRegistrationWorkflow;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -38,8 +38,6 @@ class SocialRegistrationEmailForm extends Component
         CompleteSocialRegistration $registration,
         CompleteRegistration $completeRegistration,
     ) {
-        $this->resetErrorBag();
-
         $workflow = $this->workflow();
 
         if (! $workflow instanceof SocialRegistrationWorkflow) {
@@ -50,51 +48,42 @@ class SocialRegistrationEmailForm extends Component
             return null;
         }
 
-        try {
-            $email = $registration->validateEmail((string) ($this->fields['email'] ?? ''));
-            $this->fields['email'] = $email;
+        $validated = $this->validate()['fields'];
+        $email = Str::lower(trim((string) $validated['email']));
+        $this->fields['email'] = $email;
 
-            if ($registration->emailBelongsToExistingUser($email)) {
-                $workflow->apply('show_existing_account_handoff', [
-                    'attempted_email' => $email,
-                ]);
-                $workflow->saveStore(useSession: true);
-                Activity::log(ActivityEvent::AuthSocialRegistrationBlockedExistingEmail, [
-                    'provider' => $this->provider()->value,
-                    'flow' => 'register',
-                    'reason' => 'entered_existing_email',
-                    'workflow' => [
-                        'class' => SocialRegistrationWorkflow::class,
-                        'state' => 'existing_account_handoff',
-                    ],
-                ]);
-
-                return null;
-            }
-
-            $user = $registration->complete([
-                'name' => $workflow->getInitialContextValue('display_name', $this->providerLabel().' User'),
-                'email' => $email,
-                'provider' => $workflow->getInitialContextValue('provider'),
-                'provider_user_id' => $workflow->getInitialContextValue('provider_user_id'),
-                'provider_email' => $workflow->getInitialContextValue('effective_provider_email'),
-                'avatar_url' => $workflow->getInitialContextValue('avatar_url'),
-                'access_token' => $this->decryptOptionalString($workflow->getInitialContextValue('access_token')),
-                'refresh_token' => $this->decryptOptionalString($workflow->getInitialContextValue('refresh_token')),
-                'expires_in' => $workflow->getInitialContextValue('expires_in'),
-                'scopes' => $workflow->getInitialContextValue('scopes', []),
-                'profile' => $workflow->getInitialContextValue('profile', []),
-                'legal_acceptance' => $workflow->getInitialContextValue('legal_acceptance'),
+        if ($registration->emailBelongsToExistingUser($email)) {
+            $workflow->apply('show_existing_account_handoff', [
+                'attempted_email' => $email,
             ]);
-        } catch (ValidationException $exception) {
-            $emailError = $exception->validator->errors()->first('email');
-
-            if ($emailError !== '') {
-                $this->addError('fields.email', $emailError);
-            }
+            $workflow->saveStore(useSession: true);
+            Activity::log(ActivityEvent::AuthSocialRegistrationBlockedExistingEmail, [
+                'provider' => $this->provider()->value,
+                'flow' => 'register',
+                'reason' => 'entered_existing_email',
+                'workflow' => [
+                    'class' => SocialRegistrationWorkflow::class,
+                    'state' => 'existing_account_handoff',
+                ],
+            ]);
 
             return null;
         }
+
+        $user = $registration->complete([
+            'name' => $workflow->getInitialContextValue('display_name', $this->providerLabel().' User'),
+            'email' => $email,
+            'provider' => $workflow->getInitialContextValue('provider'),
+            'provider_user_id' => $workflow->getInitialContextValue('provider_user_id'),
+            'provider_email' => $workflow->getInitialContextValue('effective_provider_email'),
+            'avatar_url' => $workflow->getInitialContextValue('avatar_url'),
+            'access_token' => $this->decryptOptionalString($workflow->getInitialContextValue('access_token')),
+            'refresh_token' => $this->decryptOptionalString($workflow->getInitialContextValue('refresh_token')),
+            'expires_in' => $workflow->getInitialContextValue('expires_in'),
+            'scopes' => $workflow->getInitialContextValue('scopes', []),
+            'profile' => $workflow->getInitialContextValue('profile', []),
+            'legal_acceptance' => $workflow->getInitialContextValue('legal_acceptance'),
+        ]);
 
         $workflow->apply('complete_registration', [
             'registered_user_id' => $user->id,
@@ -177,6 +166,26 @@ class SocialRegistrationEmailForm extends Component
             ->layout('components.layouts.guest', [
                 'variant' => 'simple',
             ]);
+    }
+
+    /**
+     * @return array<string, array<int, mixed>|string>
+     */
+    protected function rules(): array
+    {
+        return [
+            'fields.email' => ['required', 'string', 'email', 'max:255'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function validationAttributes(): array
+    {
+        return [
+            'fields.email' => 'email address',
+        ];
     }
 
     private function workflow(): ?SocialRegistrationWorkflow

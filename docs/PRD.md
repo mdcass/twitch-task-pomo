@@ -711,7 +711,8 @@ Deliver the first internal end-to-end overlay prototype without depending on liv
 - `BP-TASK-P1-20` DONE Implement the Phase 1 schema and model skeletons for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions`.
 - `BP-TASK-P1-21` DONE Add factories and test helpers for teams, streams, canvases, tasks, and Pomodoro session setup.
 - `BP-TASK-P1-22` DONE Build local-only testing widgets for a list of tasks and a pomodoro widget which can be used in future canvas testing.
-- `BP-TASK-P1-23` Build the canvas creation and general CRUD flow. 
+- `BP-TASK-P1-23` DONE Build the canvas creation and general CRUD flow. 
+- `BP-TASK-P1-23A` Build the first composer workspace interactions for canvases, including widget add, move, resize, and visibility management on the editor surface.
 - `BP-TASK-P1-24` Implement a single-canvas overlay render path driven by synthetic stream-session state.
 - `BP-TASK-P1-25` Build a developer testing panel that can start or stop test sessions and inject synthetic chat commands.
 - `BP-TASK-P1-26` Add focused feature tests for canvas rendering, widget updates, and developer-panel flows.

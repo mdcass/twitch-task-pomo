@@ -13,6 +13,10 @@ enum ActivityEvent: string
     case AuthSocialRegistrationBlockedExistingEmail = 'auth.social.registration_blocked_existing_email';
     case AuthSocialRegistrationCompleted = 'auth.social.registration_completed';
     case AuthSocialSessionInvalid = 'auth.social.session_invalid';
+    case CanvasArchived = 'canvas.archived';
+    case CanvasCreated = 'canvas.created';
+    case CanvasRestored = 'canvas.restored';
+    case CanvasUpdated = 'canvas.updated';
     case ProviderAuthCreated = 'provider_auth.created';
     case ProviderAuthUpdated = 'provider_auth.updated';
     case TeamCreated = 'team.created';

@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use App\Http\Controllers\Auth\RegisterController;
+use App\Models\Canvas;
+use App\Policies\CanvasPolicy;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController as FortifyRegisteredUserController;
 use SocialiteProviders\Discord\Provider as DiscordProvider;
@@ -25,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Canvas::class, CanvasPolicy::class);
+
         Event::listen(function (SocialiteWasCalled $event): void {
             $event->extendSocialite('discord', DiscordProvider::class);
             $event->extendSocialite('twitch', TwitchProvider::class);

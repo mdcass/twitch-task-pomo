@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CanvasController;
 use App\Http\Controllers\Auth\OauthController;
 use App\Livewire\Auth\SocialRegistrationEmailForm;
 use Illuminate\Support\Facades\Route;
@@ -27,4 +28,5 @@ Route::middleware([
     'verified',
 ])->group(function (): void {
     Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
+    Route::resource('canvases', CanvasController::class)->only(['index', 'edit']);
 });

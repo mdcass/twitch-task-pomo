@@ -32,6 +32,7 @@ Read this file before changing the authenticated shell, guest auth layouts, or t
 - Keep supplemental JavaScript minimal and selective.
 - Only install dependencies required by adopted runtime behavior.
 - Do not import Phoenix charts, editors, maps, calendars, or other large vendor bundles until a product feature requires them.
+- When importing Phoenix components into the product, do not introduce custom CSS where we already have working CSS imported by Phoenix
 
 ## Layout And Shell Rules
 

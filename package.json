@@ -5,7 +5,7 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "playwright:install": "playwright install"
+        "playwright:install": "playwright install chromium"
     },
     "devDependencies": {
         "autoprefixer": "^10.4.16",
@@ -22,6 +22,7 @@
         "@iconscout/unicons": "^4.2.0",
         "@popperjs/core": "^2.11.8",
         "bootstrap": "^5.3.8",
-        "sass": "^1.98.0"
+        "sass": "^1.98.0",
+        "simplebar": "^6.3.3"
     }
 }

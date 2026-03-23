@@ -14,10 +14,15 @@ trait LogsModelActivity
 
     abstract protected function activityLogAttributes(): array;
 
+    protected function activityLogName(): string
+    {
+        return 'auth';
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->useLogName('auth')
+            ->useLogName($this->activityLogName())
             ->logOnly($this->activityLogAttributes())
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()

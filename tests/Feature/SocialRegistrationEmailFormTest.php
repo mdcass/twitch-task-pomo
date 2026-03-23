@@ -107,7 +107,9 @@ class SocialRegistrationEmailFormTest extends TestCase
             ->where('event', ActivityEvent::AuthSocialRegistrationCompleted->value)
             ->sole();
 
-        $this->assertSame('livewire/update', $activity->getExtraProperty('request_path'));
+        $this->assertStringStartsWith('livewire-unit-test-endpoint/', $activity->getExtraProperty('request_path'));
+        $this->assertSame('auth.social-registration-email-form', $activity->getExtraProperty('livewire_component'));
+        $this->assertSame('submit', $activity->getExtraProperty('livewire_method'));
         $this->assertSame($user->current_team_id, $activity->team_id);
         $this->assertSame(SocialRegistrationWorkflow::class, data_get($activity->properties->toArray(), 'workflow.class'));
         $this->assertSame('complete', data_get($activity->properties->toArray(), 'workflow.state'));
@@ -158,7 +160,9 @@ class SocialRegistrationEmailFormTest extends TestCase
             ->where('event', ActivityEvent::AuthSocialRegistrationBlockedExistingEmail->value)
             ->sole();
 
-        $this->assertSame('livewire/update', $activity->getExtraProperty('request_path'));
+        $this->assertStringStartsWith('livewire-unit-test-endpoint/', $activity->getExtraProperty('request_path'));
+        $this->assertSame('auth.social-registration-email-form', $activity->getExtraProperty('livewire_component'));
+        $this->assertSame('submit', $activity->getExtraProperty('livewire_method'));
         $this->assertSame('entered_existing_email', $activity->getExtraProperty('reason'));
         $this->assertSame(SocialRegistrationWorkflow::class, data_get($activity->properties->toArray(), 'workflow.class'));
         $this->assertSame('existing_account_handoff', data_get($activity->properties->toArray(), 'workflow.state'));
@@ -186,6 +190,7 @@ class SocialRegistrationEmailFormTest extends TestCase
         Livewire::test(SocialRegistrationEmailForm::class)
             ->set('fields.email', 'not-an-email')
             ->call('submit')
+            ->assertSeeText('The email address field must be a valid email address.')
             ->assertHasErrors(['fields.email']);
 
         $this->assertGuest();

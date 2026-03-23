@@ -64,6 +64,7 @@ For documentation-only changes, a test run is not required unless the task also 
 
 - If you touch auth or onboarding code, start with the smallest relevant auth or workflow feature test, then expand as needed.
 - For browser coverage, prefer `composer test:browser` or the smallest relevant `tests/Browser/` file instead of folding browser runs into the default PHPUnit gate.
+- `composer test:browser` is the repo entrypoint because it clears config and installs the pinned Playwright Chromium runtime before running `tests/Browser/`.
 - If you touch shared shell or layout behavior, include the relevant feature tests plus manual browser verification when the change is visual.
 - If a change affects signed URLs, authorization, or realtime entry boundaries, make sure failure paths are asserted explicitly.
 

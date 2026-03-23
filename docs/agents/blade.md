@@ -10,7 +10,7 @@ Read this file before changing Blade layouts, shared Blade components, or page-c
 
 - Blade views should primarily compose product-owned layouts, Blade components, and Livewire components.
 - Keep controllers and route closures thin; page-level Blade views should mostly choose layout structure and embed the relevant Livewire surface.
-- Use `@stack('modals')` for page-level modal hosts that should render near the end of the authenticated shell.
+- Use `@stack('modals')` for page-level modal and offcanvas hosts that should render near the end of the authenticated shell.
 
 ### Shared Components
 
@@ -28,9 +28,11 @@ Read this file before changing Blade layouts, shared Blade components, or page-c
 ### Livewire Embedding
 
 - Use `@livewire(...)` for page- or section-level components.
-- For modal-hosted dynamic Livewire children, mount the host in `@stack('modals')` and trigger it with the shared modal events instead of inlining a one-off modal shell per table row.
+- For modal-hosted or offcanvas-hosted dynamic Livewire children, mount the host in `@stack('modals')` and trigger it with the shared browser events instead of inlining one-off shells per table row.
 - Prefer one modal host per modal concern on the page. Row actions should dispatch the target record payload into that host rather than rendering duplicate modal markup in each loop iteration.
 - When the same view loops over records, key modal triggers and nested Livewire children carefully so rerenders do not cross wires between records.
+- Prefer `x-overlay-trigger` for Blade-driven modal and offcanvas opens so event naming and payload shape stay centralized.
+- Point `x-overlay-trigger` at the mounted host `elementId` with an explicit `surface`.
 
 ### Shared Modal Shell
 

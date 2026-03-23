@@ -26,7 +26,7 @@ class TestingSocialAuthController extends Controller
         return redirect()->to(is_string($next) && str_starts_with($next, '/') ? $next : '/');
     }
 
-    public function authorize(Request $request, ExternalAuthProvider $provider): RedirectResponse
+    public function redirectToProvider(Request $request, ExternalAuthProvider $provider): RedirectResponse
     {
         abort_unless(app()->environment('testing'), 404);
 

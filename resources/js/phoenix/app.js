@@ -1,6 +1,7 @@
 import '../bootstrap';
 import focus from '@alpinejs/focus';
 import * as bootstrap from 'bootstrap';
+import SimpleBar from 'simplebar';
 
 window.bootstrap = bootstrap;
 
@@ -8,7 +9,7 @@ document.addEventListener('alpine:init', () => {
     window.Alpine.plugin(focus);
 });
 
-window.twitchTaskPomoLastInteractiveElement = null;
+window.overlayLastInteractiveElement = null;
 
 const trackLastInteractiveElement = (target) => {
     if (!(target instanceof Element)) {
@@ -20,33 +21,53 @@ const trackLastInteractiveElement = (target) => {
     );
 
     if (candidate instanceof HTMLElement) {
-        window.twitchTaskPomoLastInteractiveElement = candidate;
+        window.overlayLastInteractiveElement = candidate;
     }
 };
 
-window.twitchTaskPomoModal = ({ show, dismissible, initialFocus, initialFocusMethod }) => ({
+const buildOverlayController = ({ kind, show, dismissible, initialFocus, initialFocusMethod }) => ({
     show,
     dismissible,
     initialFocus,
     initialFocusMethod,
+    instance: null,
+    syncingFromBootstrap: false,
     lastActiveElement: null,
     lastActiveSelector: null,
     init() {
-        this.$watch('show', (value) => (value ? this.handleOpen() : this.handleClose()));
+        const bootstrapClass = kind === 'modal' ? bootstrap.Modal : bootstrap.Offcanvas;
+
+        this.instance = bootstrapClass.getOrCreateInstance(this.$el, {
+            backdrop: this.dismissible ? true : 'static',
+            keyboard: this.dismissible,
+        });
+
+        this.$el.addEventListener(`show.bs.${kind}`, () => this.handleShow());
+        this.$el.addEventListener(`shown.bs.${kind}`, () => this.handleShown());
+        this.$el.addEventListener(`hidden.bs.${kind}`, () => this.handleHidden());
+
+        this.$watch('show', (value) => {
+            if (this.syncingFromBootstrap) {
+                return;
+            }
+
+            if (value) {
+                this.instance.show();
+                return;
+            }
+
+            this.instance.hide();
+        });
 
         if (this.show) {
-            this.handleOpen();
-            return;
+            this.instance.show();
         }
-
-        this.syncBodyState(false);
     },
     close() {
-        if (!this.dismissible) {
-            return;
-        }
-
-        this.show = false;
+        this.instance?.hide();
+    },
+    finishSync() {
+        this.syncingFromBootstrap = false;
     },
     escapeSelectorValue(value) {
         return JSON.stringify(value).slice(1, -1);
@@ -74,13 +95,9 @@ window.twitchTaskPomoModal = ({ show, dismissible, initialFocus, initialFocusMet
 
         return element.getAttribute('data-modal-return-focus');
     },
-    syncBodyState(isOpen) {
-        document.body.classList.toggle('modal-open', isOpen);
-        document.body.style.overflow = isOpen ? 'hidden' : '';
-    },
     findInitialFocusTarget() {
         if (!this.initialFocus) {
-            return this.$refs.dialog;
+            return kind === 'modal' ? this.$refs.dialog : this.$refs.panel;
         }
 
         const refTarget = this.$refs[this.initialFocus];
@@ -89,7 +106,9 @@ window.twitchTaskPomoModal = ({ show, dismissible, initialFocus, initialFocusMet
             return refTarget;
         }
 
-        return this.$refs.dialog?.querySelector?.(this.initialFocus) ?? this.$refs.dialog;
+        const fallbackTarget = kind === 'modal' ? this.$refs.dialog : this.$refs.panel;
+
+        return fallbackTarget?.querySelector?.(this.initialFocus) ?? fallbackTarget;
     },
     focusInitialTarget() {
         const target = this.findInitialFocusTarget();
@@ -104,39 +123,57 @@ window.twitchTaskPomoModal = ({ show, dismissible, initialFocus, initialFocusMet
             target.select();
         }
     },
-    handleOpen() {
-        const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    handleShow() {
         const lastInteractiveElement =
-            window.twitchTaskPomoLastInteractiveElement instanceof HTMLElement
-                ? window.twitchTaskPomoLastInteractiveElement
+            window.overlayLastInteractiveElement instanceof HTMLElement
+                ? window.overlayLastInteractiveElement
                 : null;
+        const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
         this.lastActiveElement =
-            activeElement && activeElement !== document.body ? activeElement : lastInteractiveElement;
+            lastInteractiveElement ?? (activeElement && activeElement !== document.body ? activeElement : null);
         this.lastActiveSelector = this.resolveFocusReturnSelector(this.lastActiveElement);
-        this.syncBodyState(true);
-        this.$nextTick(() => this.focusInitialTarget());
     },
-    handleClose() {
-        this.syncBodyState(false);
-
-        const lastActiveElement = this.lastActiveElement;
-        const lastActiveSelector = this.lastActiveSelector;
+    handleShown() {
+        this.focusInitialTarget();
+    },
+    handleHidden() {
+        this.syncingFromBootstrap = true;
+        this.show = false;
 
         this.$nextTick(() => {
-            if (lastActiveElement instanceof HTMLElement && document.contains(lastActiveElement)) {
-                lastActiveElement.focus();
-                return;
-            }
-
-            const fallbackTarget = lastActiveSelector ? document.querySelector(lastActiveSelector) : null;
-
-            if (fallbackTarget instanceof HTMLElement) {
-                fallbackTarget.focus();
-            }
+            this.restoreFocus();
         });
     },
+    restoreFocus(attempt = 0) {
+        if (this.lastActiveElement instanceof HTMLElement && document.contains(this.lastActiveElement)) {
+            this.lastActiveElement.focus();
+            this.finishSync();
+
+            return;
+        }
+
+        const fallbackTarget = this.lastActiveSelector ? document.querySelector(this.lastActiveSelector) : null;
+
+        if (fallbackTarget instanceof HTMLElement) {
+            fallbackTarget.focus();
+            this.finishSync();
+
+            return;
+        }
+
+        if (attempt >= 5) {
+            this.finishSync();
+
+            return;
+        }
+
+        requestAnimationFrame(() => this.restoreFocus(attempt + 1));
+    },
 });
+
+window.overlayModal = (options) => buildOverlayController({ kind: 'modal', ...options });
+window.overlayOffcanvas = (options) => buildOverlayController({ kind: 'offcanvas', ...options });
 
 const getPreferredTheme = () => {
     const storedTheme = localStorage.getItem('phoenixTheme') ?? 'light';
@@ -255,12 +292,24 @@ const syncComboNavigation = () => {
     moveContainer.remove();
 };
 
+const initContentTopScrollbars = () => {
+    document.querySelectorAll('[data-content-top-scroller]').forEach((element) => {
+        if (!(element instanceof HTMLElement) || element.dataset.simplebarInitialized === 'true') {
+            return;
+        }
+
+        new SimpleBar(element, { autoHide: false });
+        element.dataset.simplebarInitialized = 'true';
+    });
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     applyTheme(getPreferredTheme());
     syncThemeControls();
     applyNavbarVerticalCollapsed(localStorage.getItem(collapsedStorageKey) === 'true');
     setDocumentMinHeight();
     syncComboNavigation();
+    initContentTopScrollbars();
 });
 
 document.addEventListener('click', (event) => {
@@ -279,10 +328,6 @@ document.addEventListener('click', (event) => {
         applyNavbarVerticalCollapsed(next);
         setDocumentMinHeight();
     }
-});
-
-document.addEventListener('focusin', (event) => {
-    trackLastInteractiveElement(event.target);
 });
 
 document.addEventListener('change', (event) => {

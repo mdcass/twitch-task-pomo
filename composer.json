@@ -50,6 +50,7 @@
             "@php artisan key:generate",
             "@php artisan migrate --force",
             "npm install",
+            "npm run playwright:install",
             "npm run build"
         ],
         "dev": [
@@ -63,6 +64,7 @@
         "test:browser": [
             "@php -r \"file_exists('database/browser-test.sqlite') || touch('database/browser-test.sqlite');\"",
             "@php artisan config:clear --ansi",
+            "npm run playwright:install",
             "./vendor/bin/pest --configuration=phpunit.browser.xml tests/Browser"
         ],
         "post-autoload-dump": [

@@ -39,8 +39,10 @@ Read this file before changing tenancy boundaries, authorization, model behavior
 
 ### Validation Source Of Truth
 
-- Persisted model validation should live in the action or service that performs the write.
-- Controllers, jobs, commands, and Livewire components should reuse that shared validation path rather than duplicating rules.
+- Persisted model validation should live in the action or a small, action-local helper when multiple actions share the same payload rules.
+- Actions and services must still validate defensively before writes, even when an upstream UI entry point has already validated the same payload.
+- Livewire components should keep editable input scoped under one `$fields` array and use native component validation on `fields.*` keys instead of manually catching and remapping validation exceptions.
+- Prefer the simplest validation structure that keeps the write path readable; do not introduce repo-wide validation abstractions unless there is clear repeated pressure for them.
 
 ### Activity Logging And Sensitive Data
 

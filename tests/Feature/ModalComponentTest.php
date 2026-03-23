@@ -183,17 +183,44 @@ class ModalComponentTest extends TestCase
             'initialFocusMethod' => 'select',
         ])->html();
 
-        $this->assertStringContainsString('dismissible: true', $defaultHtml);
+        $this->assertStringContainsString('overlayModal', $defaultHtml);
+        $this->assertStringContainsString('data-bs-backdrop="true"', $defaultHtml);
+        $this->assertStringContainsString('data-bs-keyboard="true"', $defaultHtml);
         $this->assertStringContainsString('initialFocus', $defaultHtml);
         $this->assertStringContainsString('focusTarget', $defaultHtml);
         $this->assertStringContainsString('initialFocusMethod', $defaultHtml);
         $this->assertStringContainsString('focus', $defaultHtml);
 
-        $this->assertStringContainsString('dismissible: false', $nonDismissibleHtml);
+        $this->assertStringContainsString('data-bs-backdrop="static"', $nonDismissibleHtml);
+        $this->assertStringContainsString('data-bs-keyboard="false"', $nonDismissibleHtml);
         $this->assertStringContainsString('initialFocus', $nonDismissibleHtml);
         $this->assertStringContainsString('focusTarget', $nonDismissibleHtml);
         $this->assertStringContainsString('initialFocusMethod', $nonDismissibleHtml);
         $this->assertStringContainsString('select', $nonDismissibleHtml);
+    }
+
+    public function test_modal_passes_non_model_attributes_through_to_the_root_element(): void
+    {
+        $html = Livewire::test(new class extends Component {
+            public bool $show = true;
+
+            public function render(): string
+            {
+                return <<<'BLADE'
+                    <x-modal
+                        wire:model.live="show"
+                        data-overlay-surface="modal"
+                        x-on:overlay-modal-open.window="window.modalOpened = true"
+                    >
+                        <div>Harness Body</div>
+                    </x-modal>
+                    BLADE;
+            }
+        })->html();
+
+        $this->assertStringContainsString('data-overlay-surface="modal"', $html);
+        $this->assertStringContainsString('x-on:overlay-modal-open.window="window.modalOpened = true"', $html);
+        $this->assertStringNotContainsString('wire:model.live="show"', $html);
     }
 
     public function test_profile_page_renders_the_destructive_delete_account_modal_with_the_base_component(): void

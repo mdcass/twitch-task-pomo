@@ -20,6 +20,16 @@ class AppShellLayoutTest extends TestCase
 
         Route::middleware('web')->get('/_test/shell/{layout}', fn (string $layout) => Blade::render(<<<'BLADE'
                 <x-app-layout :layout="$layout">
+                    @if ($withContentTop)
+                        <x-slot name="contentTop">
+                            <x-content-top-nav>
+                                <x-slot name="primary">
+                                    <span>Shell Top Navigation</span>
+                                </x-slot>
+                            </x-content-top-nav>
+                        </x-slot>
+                    @endif
+
                     <x-slot name="header">
                         <div>
                             <h1 class="h2 mb-0">Shell Preview</h1>
@@ -28,7 +38,7 @@ class AppShellLayoutTest extends TestCase
 
                     <p>Preview content</p>
                 </x-app-layout>
-                BLADE, ['layout' => $layout]));
+                BLADE, ['layout' => $layout, 'withContentTop' => request()->boolean('content_top')]));
     }
 
     public function test_existing_authenticated_pages_use_the_vertical_layout_by_default(): void
@@ -65,6 +75,51 @@ class AppShellLayoutTest extends TestCase
                 ->assertSee('data-shell-layout="'.$layout.'"', false)
                 ->assertSee('data-navigation-type="'.$navigationType.'"', false)
                 ->assertSee('data-navbar-horizontal-shape="'.$shape.'"', false);
+        }
+    }
+
+    public function test_content_top_is_omitted_when_the_slot_is_not_provided(): void
+    {
+        $user = $this->verifiedUserWithCurrentTeam();
+
+        $this->actingAs($user)
+            ->get('/_test/shell/vertical')
+            ->assertOk()
+            ->assertDontSee('data-content-top-shell', false);
+    }
+
+    public function test_content_top_renders_before_the_page_header_when_provided(): void
+    {
+        $user = $this->verifiedUserWithCurrentTeam();
+
+        $this->actingAs($user)
+            ->get('/_test/shell/vertical?content_top=1')
+            ->assertOk()
+            ->assertSee('data-content-top-shell', false)
+            ->assertSee('data-content-top-scroller', false)
+            ->assertSeeInOrder(['Shell Top Navigation', 'Shell Preview', 'Preview content']);
+    }
+
+    public function test_content_top_does_not_disturb_layout_markers_for_supported_variants(): void
+    {
+        $user = $this->verifiedUserWithCurrentTeam();
+
+        $variants = [
+            'vertical' => ['default', 'default'],
+            'horizontal' => ['horizontal', 'default'],
+            'combo' => ['combo', 'default'],
+            'dual-nav' => ['dual', 'default'],
+            'topnav-slim' => ['default', 'slim'],
+        ];
+
+        foreach ($variants as $layout => [$navigationType, $shape]) {
+            $this->actingAs($user)
+                ->get('/_test/shell/'.$layout.'?content_top=1')
+                ->assertOk()
+                ->assertSee('data-shell-layout="'.$layout.'"', false)
+                ->assertSee('data-navigation-type="'.$navigationType.'"', false)
+                ->assertSee('data-navbar-horizontal-shape="'.$shape.'"', false)
+                ->assertSee('data-content-top-shell', false);
         }
     }
 
