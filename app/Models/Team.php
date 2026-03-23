@@ -70,6 +70,66 @@ class Team extends JetstreamTeam
         return $this->hasMany(WorkflowStore::class);
     }
 
+    /**
+     * Get the streams owned by the team.
+     *
+     * @return HasMany<Stream, $this>
+     */
+    public function streams(): HasMany
+    {
+        return $this->hasMany(Stream::class);
+    }
+
+    /**
+     * Get the stream sessions owned by the team.
+     *
+     * @return HasMany<StreamSession, $this>
+     */
+    public function streamSessions(): HasMany
+    {
+        return $this->hasMany(StreamSession::class);
+    }
+
+    /**
+     * Get the canvases owned by the team.
+     *
+     * @return HasMany<Canvas, $this>
+     */
+    public function canvases(): HasMany
+    {
+        return $this->hasMany(Canvas::class);
+    }
+
+    /**
+     * Get the widget instances owned by the team.
+     *
+     * @return HasMany<WidgetInstance, $this>
+     */
+    public function widgetInstances(): HasMany
+    {
+        return $this->hasMany(WidgetInstance::class);
+    }
+
+    /**
+     * Get the task items owned by the team.
+     *
+     * @return HasMany<TaskItem, $this>
+     */
+    public function taskItems(): HasMany
+    {
+        return $this->hasMany(TaskItem::class);
+    }
+
+    /**
+     * Get the pomodoro sessions owned by the team.
+     *
+     * @return HasMany<PomodoroSession, $this>
+     */
+    public function pomodoroSessions(): HasMany
+    {
+        return $this->hasMany(PomodoroSession::class);
+    }
+
     protected function activityEventMap(): array
     {
         return [

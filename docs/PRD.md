@@ -708,8 +708,8 @@ Import the shared interaction primitives early so step-based flows and auditabil
 
 Deliver the first internal end-to-end overlay prototype without depending on live Twitch transport.
 
-- `BP-TASK-P1-20` Implement the Phase 1 schema and model skeletons for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions`.
-- `BP-TASK-P1-21` Add factories and test helpers for teams, streams, canvases, tasks, and Pomodoro session setup.
+- `BP-TASK-P1-20` DONE Implement the Phase 1 schema and model skeletons for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions`.
+- `BP-TASK-P1-21` DONE Add factories and test helpers for teams, streams, canvases, tasks, and Pomodoro session setup.
 - `BP-TASK-P1-22` Build local-only testing widgets for a list of tasks and a pomodoro widget which can be used in future canvas testing.
 - `BP-TASK-P1-23` Build a local-only canvas creation flow that attaches default task and Pomodoro widget instances.
 - `BP-TASK-P1-24` Implement a single-canvas overlay render path driven by synthetic stream-session state.

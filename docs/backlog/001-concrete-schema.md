@@ -2,11 +2,13 @@
 
 ## Purpose
 
-Define the first-pass schema and model boundaries needed to start Phase 1 without drifting away from the product and architecture decisions in [../PRD.md](../PRD.md).
+Capture the first-pass schema and model boundaries that guided Phase 1 and still frame the adjacent schema work that remains beyond the implemented core slice.
 
 ## Scope
 
-This document covers the durable ownership, workflow, Twitch runtime, overlay, and audit models needed for the first implementation slice.
+This document covers the durable ownership, workflow, Twitch runtime, overlay, and audit models needed for the Phase 1 implementation sequence.
+
+At `HEAD`, the core slice for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions` is implemented. This note remains useful for adjacent schema planning that extends beyond that slice.
 
 It does not restate widget behavior, bot command semantics, viewer timer UX, or later billing rules already defined in the PRD.
 
@@ -101,16 +103,13 @@ It does not restate widget behavior, bot command semantics, viewer timer UX, or 
 - `StreamSession` owns ephemeral runtime state for tasks, Pomodoro, bot activity, timer publication, and metering.
 - Writes for team-scoped records should route through team or team-owned relationships.
 
-## Suggested Build Order
+## Remaining Build Order
 
-1. `teams`, `team_user`, and enum-backed role and team-type support.
-2. `provider_auths` and `provider_app_tokens`.
-3. `workflow_stores` and imported workflow primitives.
-4. `streams`, `stream_sessions`, and `twitch_subscriptions`.
-5. `canvases`, `widget_instances`, and `theme_profiles`.
-6. `task_items`, `pomodoro_sessions`, `bot_command_events`, and `overlay_heartbeats`.
-7. Activity logging integration and event enums.
+1. `provider_app_tokens`, `twitch_subscriptions`, and any connection/runtime logging tables needed for durable Twitch operations.
+2. `theme_profiles` once canvas-level visual presets need first-class persistence.
+3. `bot_command_events`, `overlay_heartbeats`, and `viewer_timer_sessions` as the runtime and public timer surfaces expand.
 
 ## Follow-up
 
-- After the first schema pass is implemented, update `docs/RUNBOOK.md` with what is actually present at `HEAD` and trim this document if any sections become redundant with implemented code and the runbook.
+- Use `docs/RUNBOOK.md` as the source of truth for implemented state at `HEAD`.
+- Keep this note focused on future adjacent schema decisions rather than repeating the now-implemented core slice.

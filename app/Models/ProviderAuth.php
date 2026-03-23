@@ -9,6 +9,7 @@ use Database\Factories\ProviderAuthFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProviderAuth extends Model
@@ -67,6 +68,16 @@ class ProviderAuth extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the streams authorized by the provider authentication.
+     *
+     * @return HasMany<Stream, $this>
+     */
+    public function streams(): HasMany
+    {
+        return $this->hasMany(Stream::class);
     }
 
     /**

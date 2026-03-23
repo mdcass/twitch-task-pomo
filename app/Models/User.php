@@ -178,6 +178,26 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(UserSetting::class);
     }
 
+    /**
+     * Get the canvases created by the user.
+     *
+     * @return HasMany<Canvas, $this>
+     */
+    public function canvases(): HasMany
+    {
+        return $this->hasMany(Canvas::class, 'created_by_user_id');
+    }
+
+    /**
+     * Get the task items created by the user.
+     *
+     * @return HasMany<TaskItem, $this>
+     */
+    public function taskItems(): HasMany
+    {
+        return $this->hasMany(TaskItem::class, 'created_by_user_id');
+    }
+
     public function workflowStoreFor(string $workflowClass): ?WorkflowStore
     {
         $team = $this->currentTeam;
