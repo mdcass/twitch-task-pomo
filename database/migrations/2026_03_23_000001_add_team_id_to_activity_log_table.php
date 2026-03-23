@@ -18,7 +18,9 @@ return new class extends Migration {
     {
         Schema::connection(config('activitylog.database_connection'))
             ->table(config('activitylog.table_name'), function (Blueprint $table): void {
-                $table->dropConstrainedForeignId('team_id');
+                $table->dropForeign(['team_id']);
+                $table->dropIndex(['team_id']);
+                $table->dropColumn('team_id');
             });
     }
 };

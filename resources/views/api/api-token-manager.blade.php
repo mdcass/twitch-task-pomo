@@ -98,45 +98,41 @@
     @endif
 
     <!-- Token Value Modal -->
-    <x-dialog-modal wire:model.live="displayingToken">
-        <x-slot name="title">
-            {{ __('API Token') }}
+    <x-modal wire:model.live="displayingToken" initial-focus="plaintextToken" initial-focus-method="select">
+        <x-slot name="header">
+            <h5 class="modal-title">{{ __('API Token') }}</h5>
         </x-slot>
 
-        <x-slot name="content">
+        <div>
             <div>
                 {{ __('Please copy your new API token. For your security, it won\'t be shown again.') }}
             </div>
 
             <x-input x-ref="plaintextToken" type="text" readonly :value="$plainTextToken"
                 class="mt-4 font-monospace text-body-secondary bg-body-secondary" autofocus autocomplete="off"
-                autocorrect="off" autocapitalize="off" spellcheck="false"
-                @showing-token-modal.window="setTimeout(() => $refs.plaintextToken.select(), 250)" />
-        </x-slot>
+                autocorrect="off" autocapitalize="off" spellcheck="false" />
 
-        <x-slot name="footer">
-            <x-secondary-button wire:click="$set('displayingToken', false)" wire:loading.attr="disabled">
-                {{ __('Close') }}
-            </x-secondary-button>
-        </x-slot>
-    </x-dialog-modal>
+            <x-slot name="footer">
+                <x-secondary-button wire:click="$set('displayingToken', false)" wire:loading.attr="disabled">
+                    {{ __('Close') }}
+                </x-secondary-button>
+            </x-slot>
+    </x-modal>
 
     <!-- API Token Permissions Modal -->
-    <x-dialog-modal wire:model.live="managingApiTokenPermissions">
-        <x-slot name="title">
-            {{ __('API Token Permissions') }}
+    <x-modal wire:model.live="managingApiTokenPermissions">
+        <x-slot name="header">
+            <h5 class="modal-title">{{ __('API Token Permissions') }}</h5>
         </x-slot>
 
-        <x-slot name="content">
-            <div class="row row-cols-1 row-cols-md-2 g-3">
-                @foreach (Laravel\Jetstream\Jetstream::$permissions as $permission)
-                    <label class="col d-flex align-items-center gap-2">
-                        <x-checkbox wire:model="updateApiTokenForm.permissions" :value="$permission" />
-                        <span class="small text-body-secondary">{{ $permission }}</span>
-                    </label>
-                @endforeach
-            </div>
-        </x-slot>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+            @foreach (Laravel\Jetstream\Jetstream::$permissions as $permission)
+                <label class="col d-flex align-items-center gap-2">
+                    <x-checkbox wire:model="updateApiTokenForm.permissions" :value="$permission" />
+                    <span class="small text-body-secondary">{{ $permission }}</span>
+                </label>
+            @endforeach
+        </div>
 
         <x-slot name="footer">
             <x-secondary-button wire:click="$set('managingApiTokenPermissions', false)" wire:loading.attr="disabled">
@@ -147,17 +143,28 @@
                 {{ __('Save') }}
             </x-button>
         </x-slot>
-    </x-dialog-modal>
+    </x-modal>
 
     <!-- Delete Token Confirmation Modal -->
-    <x-confirmation-modal wire:model.live="confirmingApiTokenDeletion">
-        <x-slot name="title">
-            {{ __('Delete API Token') }}
+    <x-modal wire:model.live="confirmingApiTokenDeletion" max-width="md">
+        <x-slot name="header">
+            <h5 class="modal-title">{{ __('Delete API Token') }}</h5>
         </x-slot>
 
-        <x-slot name="content">
-            {{ __('Are you sure you would like to delete this API token?') }}
-        </x-slot>
+        <div class="d-flex align-items-start gap-3">
+            <div class="d-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger shrink-0"
+                style="width: 2.5rem; height: 2.5rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" style="width: 1.25rem; height: 1.25rem;">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+            </div>
+
+            <div class="text-body-secondary">
+                {{ __('Are you sure you would like to delete this API token?') }}
+            </div>
+        </div>
 
         <x-slot name="footer">
             <x-secondary-button wire:click="$toggle('confirmingApiTokenDeletion')" wire:loading.attr="disabled">
@@ -168,5 +175,5 @@
                 {{ __('Delete') }}
             </x-danger-button>
         </x-slot>
-    </x-confirmation-modal>
+    </x-modal>
 </div>

@@ -15,22 +15,23 @@
 </span>
 
 @once
-    <x-dialog-modal wire:model.live="confirmingPassword">
-        <x-slot name="title">
-            {{ $title }}
+    <x-modal wire:model.live="confirmingPassword" initial-focus="confirmable_password">
+        <x-slot name="header">
+            <h5 class="modal-title">{{ $title }}</h5>
         </x-slot>
 
-        <x-slot name="content">
-            {{ $content }}
+        <div>
+            <div class="text-body-secondary">
+                {{ $content }}
+            </div>
 
-            <div class="mt-4" x-data="{}"
-                x-on:confirming-password.window="setTimeout(() => $refs.confirmable_password.focus(), 250)">
+            <div class="mt-4">
                 <x-input type="password" class="mt-1 w-75" placeholder="{{ __('Password') }}" autocomplete="current-password"
                     x-ref="confirmable_password" wire:model="confirmablePassword" wire:keydown.enter="confirmPassword" />
 
                 <x-input-error for="confirmable_password" class="mt-2" />
             </div>
-        </x-slot>
+        </div>
 
         <x-slot name="footer">
             <x-secondary-button wire:click="stopConfirmingPassword" wire:loading.attr="disabled">
@@ -42,5 +43,5 @@
                 {{ $button }}
             </x-button>
         </x-slot>
-    </x-dialog-modal>
+    </x-modal>
 @endonce

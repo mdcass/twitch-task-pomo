@@ -7,6 +7,8 @@ Read this file before changing Blade layouts, Livewire components, Phoenix-backe
 ## Source Of Truth
 
 - Code and tests are the final source of truth.
+- `docs/agents/blade.md` covers Blade composition and shared template conventions.
+- `docs/agents/livewire.md` covers Livewire component and shared modal-host conventions.
 - `docs/agents/theme.md` covers Phoenix-specific integration boundaries.
 - `docs/RUNBOOK.md` describes the current shell and auth UI implementation at `HEAD`.
 

@@ -8,6 +8,136 @@ document.addEventListener('alpine:init', () => {
     window.Alpine.plugin(focus);
 });
 
+window.twitchTaskPomoLastInteractiveElement = null;
+
+const trackLastInteractiveElement = (target) => {
+    if (!(target instanceof Element)) {
+        return;
+    }
+
+    const candidate = target.closest(
+        'button, a, input, select, textarea, [role="button"], [data-modal-return-focus], [wire\\:click]',
+    );
+
+    if (candidate instanceof HTMLElement) {
+        window.twitchTaskPomoLastInteractiveElement = candidate;
+    }
+};
+
+window.twitchTaskPomoModal = ({ show, dismissible, initialFocus, initialFocusMethod }) => ({
+    show,
+    dismissible,
+    initialFocus,
+    initialFocusMethod,
+    lastActiveElement: null,
+    lastActiveSelector: null,
+    init() {
+        this.$watch('show', (value) => (value ? this.handleOpen() : this.handleClose()));
+
+        if (this.show) {
+            this.handleOpen();
+            return;
+        }
+
+        this.syncBodyState(false);
+    },
+    close() {
+        if (!this.dismissible) {
+            return;
+        }
+
+        this.show = false;
+    },
+    escapeSelectorValue(value) {
+        return JSON.stringify(value).slice(1, -1);
+    },
+    resolveFocusReturnSelector(element) {
+        if (!(element instanceof HTMLElement)) {
+            return null;
+        }
+
+        if (element.id) {
+            return `#${CSS.escape(element.id)}`;
+        }
+
+        const namedTarget = element.getAttribute('name');
+
+        if (namedTarget) {
+            return `[name="${this.escapeSelectorValue(namedTarget)}"]`;
+        }
+
+        const wireClick = element.getAttribute('wire:click');
+
+        if (wireClick) {
+            return `[wire\\:click="${this.escapeSelectorValue(wireClick)}"]`;
+        }
+
+        return element.getAttribute('data-modal-return-focus');
+    },
+    syncBodyState(isOpen) {
+        document.body.classList.toggle('modal-open', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+    },
+    findInitialFocusTarget() {
+        if (!this.initialFocus) {
+            return this.$refs.dialog;
+        }
+
+        const refTarget = this.$refs[this.initialFocus];
+
+        if (refTarget instanceof HTMLElement) {
+            return refTarget;
+        }
+
+        return this.$refs.dialog?.querySelector?.(this.initialFocus) ?? this.$refs.dialog;
+    },
+    focusInitialTarget() {
+        const target = this.findInitialFocusTarget();
+
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        target.focus();
+
+        if (this.initialFocusMethod === 'select' && typeof target.select === 'function') {
+            target.select();
+        }
+    },
+    handleOpen() {
+        const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const lastInteractiveElement =
+            window.twitchTaskPomoLastInteractiveElement instanceof HTMLElement
+                ? window.twitchTaskPomoLastInteractiveElement
+                : null;
+
+        this.lastActiveElement =
+            activeElement && activeElement !== document.body ? activeElement : lastInteractiveElement;
+        this.lastActiveSelector = this.resolveFocusReturnSelector(this.lastActiveElement);
+        this.syncBodyState(true);
+        this.$nextTick(() => this.focusInitialTarget());
+    },
+    handleClose() {
+        this.syncBodyState(false);
+
+        const lastActiveElement = this.lastActiveElement;
+        const lastActiveSelector = this.lastActiveSelector;
+
+        this.$nextTick(() => {
+            if (lastActiveElement instanceof HTMLElement && document.contains(lastActiveElement)) {
+                lastActiveElement.focus();
+                return;
+            }
+
+            const fallbackTarget = lastActiveSelector ? document.querySelector(lastActiveSelector) : null;
+
+            if (fallbackTarget instanceof HTMLElement) {
+                fallbackTarget.focus();
+            }
+        });
+    },
+});
+
 const getPreferredTheme = () => {
     const storedTheme = localStorage.getItem('phoenixTheme') ?? 'light';
 
@@ -134,6 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('click', (event) => {
+    trackLastInteractiveElement(event.target);
+
     const navbarToggle = event.target.closest('.navbar-vertical-toggle');
 
     if (navbarToggle) {
@@ -147,6 +279,10 @@ document.addEventListener('click', (event) => {
         applyNavbarVerticalCollapsed(next);
         setDocumentMinHeight();
     }
+});
+
+document.addEventListener('focusin', (event) => {
+    trackLastInteractiveElement(event.target);
 });
 
 document.addEventListener('change', (event) => {

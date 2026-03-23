@@ -69,23 +69,24 @@
         </div>
 
         <!-- Log Out Other Devices Confirmation Modal -->
-        <x-dialog-modal wire:model.live="confirmingLogout">
-            <x-slot name="title">
-                {{ __('Log Out Other Browser Sessions') }}
+        <x-modal wire:model.live="confirmingLogout" initial-focus="password">
+            <x-slot name="header">
+                <h5 class="modal-title">{{ __('Log Out Other Browser Sessions') }}</h5>
             </x-slot>
 
-            <x-slot name="content">
-                {{ __('Please enter your password to confirm you would like to log out of your other browser sessions across all of your devices.') }}
+            <div>
+                <div class="text-body-secondary">
+                    {{ __('Please enter your password to confirm you would like to log out of your other browser sessions across all of your devices.') }}
+                </div>
 
-                <div class="mt-4" x-data="{}"
-                    x-on:confirming-logout-other-browser-sessions.window="setTimeout(() => $refs.password.focus(), 250)">
+                <div class="mt-4">
                     <x-input type="password" class="mt-1 w-75" autocomplete="current-password"
                         placeholder="{{ __('Password') }}" x-ref="password" wire:model="password"
                         wire:keydown.enter="logoutOtherBrowserSessions" />
 
                     <x-input-error for="password" class="mt-2" />
                 </div>
-            </x-slot>
+            </div>
 
             <x-slot name="footer">
                 <x-secondary-button wire:click="$toggle('confirmingLogout')" wire:loading.attr="disabled">
@@ -96,6 +97,6 @@
                     {{ __('Log Out Other Browser Sessions') }}
                 </x-button>
             </x-slot>
-        </x-dialog-modal>
+        </x-modal>
     </x-slot>
 </x-action-section>

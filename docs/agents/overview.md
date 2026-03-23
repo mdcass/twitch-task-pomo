@@ -65,7 +65,9 @@ For focused work, prefer running the smallest relevant test file or test subset 
 
 - [overview.md](./overview.md): project shape, stack, and documentation boundaries
 - [architecture.md](./architecture.md): tenancy, authorization, model, logging, and security conventions
-- [frontend.md](./frontend.md): Blade, Livewire, Phoenix, and frontend asset ownership rules
+- [frontend.md](./frontend.md): frontend ownership boundaries and Phoenix integration entrypoints
+- [blade.md](./blade.md): Blade composition, shared component, and modal-host placement conventions
+- [livewire.md](./livewire.md): Livewire state, security, and shared modal-host conventions
 - [testing.md](./testing.md): test expectations and validation scope
 - [workflows.md](./workflows.md): workflow primitives and social onboarding conventions
 - [theme.md](./theme.md): Phoenix integration boundaries and upstream reference usage
