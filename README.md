@@ -11,6 +11,7 @@ php artisan key:generate
 touch database/database.sqlite
 php artisan migrate
 npm install
+npm run playwright:install
 ```
 
 Start the app in development:
@@ -25,6 +26,25 @@ Run the default quality gate before handing work off:
 php artisan test --parallel
 ./vendor/bin/pint --test
 ```
+
+Run the Pest browser suite for end-to-end user journeys:
+
+```bash
+composer test:browser
+```
+
+Useful focused test commands while iterating:
+
+```bash
+php artisan test tests/Feature/SocialAuthenticationTest.php
+./vendor/bin/pest --configuration=phpunit.browser.xml tests/Browser/AuthBrowserTest.php
+```
+
+Testing notes:
+
+- `php artisan test --parallel` remains the main detailed behavior and regression suite.
+- `composer test:browser` runs the broader Pest browser journeys in `tests/Browser/`.
+- Browser tests stay on localhost and use the testing-only OAuth harness rather than external provider traffic.
 
 ## Project
 

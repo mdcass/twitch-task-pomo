@@ -689,17 +689,17 @@ Create the account, team-context, and onboarding foundation for streamer-oriente
 - `BP-TASK-P1-09` DONE Implement `provider_auths` and `user_settings` persistence for external identity links and legal acceptance history.
 - `BP-TASK-P1-10` DONE Add Twitch and Discord Socialite redirect and callback flows on `/auth/{provider}/redirect` and `/auth/{provider}/callback`.
 - `BP-TASK-P1-11` DONE Build persisted onboarding workflows for local signup where a provider returns no email address; UI using the structure of the registration page should collect the email address from the user at this point. Will need branching logic if the email address already exists as a user, implemented as a Livewire component.
-- `BP-TASK-P1-12` Implement secure no-auto-link and account-claim behavior for provider callbacks that match existing local emails.
+- `BP-TASK-P1-12` DONE Implement secure no-auto-link and account-claim behavior for provider callbacks that match existing local emails.
 - `BP-TASK-P1-13` Add feature tests for local auth, first-time social signup, and viewer versus streamer profile creation. Add Pest based browser tests for all aswell.
-- `BP-TASK-P1-14` Add Spatie activity logging to authentication surface
+- `BP-TASK-P1-14` Add Spatie activity logging to authentication surface implemented over the last few commits. No duplication of what is stored in workflows is required, however coherent logging is expected. Log event names should be enum backed. The local project `~/Projects/multistream-app` shows an adequate example of implementation, including a smart Model "tapping" architecture; however i'd go one better and look to introduce our own Activity model where any/all logging logic sits as the entrypoint rather than the spatie helper for easy extension later. This task should also encompass `BP-TASK-P1-17` and `BP-TASK-P1-18` - including tests mentioned in `BP-TASK-P1-19`
 
 #### `BP-EPIC-P1-03` Shared workflow, modal, and activity primitives
 
 Import the shared interaction primitives early so step-based flows and auditability become the default implementation path.
 
-- `BP-TASK-P1-14` Copy the shared workflow classes and Livewire integration from `~/Projects/multistream-app` into this codebase.
+- `BP-TASK-P1-14` DONE Copy the shared workflow classes and Livewire integration from `~/Projects/multistream-app` into this codebase.
 - `BP-TASK-P1-15` Copy the shared modal component from `~/Projects/multistream-app` and wire it into the app UI layer.
-- `BP-TASK-P1-16` Implement `workflow_stores` migration, model, and persistence wiring with team-aware ownership fields.
+- `BP-TASK-P1-16` DONE Implement `workflow_stores` migration, model, and persistence wiring with team-aware ownership fields.
 - `BP-TASK-P1-17` Add enum-backed activity event definitions and attach logging to onboarding and core lifecycle actions.
 - `BP-TASK-P1-18` Exclude provider tokens and other sensitive values from activity logs and model change payloads.
 - `BP-TASK-P1-19` Add tests for workflow transition persistence, guard failure capture, and activity-log redaction.
@@ -710,10 +710,11 @@ Deliver the first internal end-to-end overlay prototype without depending on liv
 
 - `BP-TASK-P1-20` Implement the Phase 1 schema and model skeletons for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions`.
 - `BP-TASK-P1-21` Add factories and test helpers for teams, streams, canvases, tasks, and Pomodoro session setup.
-- `BP-TASK-P1-22` Build a local-only canvas creation flow that attaches default task and Pomodoro widget instances.
-- `BP-TASK-P1-23` Implement a single-canvas overlay render path driven by synthetic stream-session state.
-- `BP-TASK-P1-24` Build a developer testing panel that can start or stop test sessions and inject synthetic chat commands.
-- `BP-TASK-P1-25` Add focused feature tests for canvas rendering, widget updates, and developer-panel flows.
+- `BP-TASK-P1-22` Build local-only testing widgets for a list of tasks and a pomodoro widget which can be used in future canvas testing.
+- `BP-TASK-P1-23` Build a local-only canvas creation flow that attaches default task and Pomodoro widget instances.
+- `BP-TASK-P1-24` Implement a single-canvas overlay render path driven by synthetic stream-session state.
+- `BP-TASK-P1-25` Build a developer testing panel that can start or stop test sessions and inject synthetic chat commands.
+- `BP-TASK-P1-26` Add focused feature tests for canvas rendering, widget updates, and developer-panel flows.
 
 ### Phase 2: Early Composer Release
 

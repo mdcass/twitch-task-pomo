@@ -26,10 +26,18 @@ For documentation-only changes, a test run is not required unless the task also 
 - Prefer running the smallest relevant test file or filtered subset while iterating.
 - Before handing off a code change, run the default quality gate unless the user explicitly scopes validation differently.
 
+### Browser Coverage Layer
+
+- Keep PHPUnit feature tests as the detailed behavioral and branch-coverage layer.
+- Use Pest browser tests for broader user-journey coverage that protects visible interactions and expectations.
+- Prefer a small number of meaningful browser journeys over mirroring every feature-test branch in the browser suite.
+- When browser tests need external-auth coverage, keep them localhost-only through explicit testing seams rather than real provider traffic.
+
 ### Test Structure
 
 - Use `tests/Feature/` for HTTP, auth, Livewire, workflow, and integration behavior.
 - Use `tests/Unit/` for isolated domain logic that does not need a full feature harness.
+- Use `tests/Browser/` for Pest browser journeys that validate end-to-end user interaction.
 - Add focused regression tests for the behavior being changed.
 
 ### Data Setup
@@ -47,6 +55,7 @@ For documentation-only changes, a test run is not required unless the task also 
 ## Key File Families
 
 - `tests/Feature/`: primary application behavior coverage
+- `tests/Browser/`: browser-driven interaction coverage
 - `tests/Feature/Workflows/`: workflow primitive coverage
 - `tests/Unit/`: isolated logic
 - `database/factories/`: default model factories
@@ -54,6 +63,7 @@ For documentation-only changes, a test run is not required unless the task also 
 ## Verification Pointers
 
 - If you touch auth or onboarding code, start with the smallest relevant auth or workflow feature test, then expand as needed.
+- For browser coverage, prefer `composer test:browser` or the smallest relevant `tests/Browser/` file instead of folding browser runs into the default PHPUnit gate.
 - If you touch shared shell or layout behavior, include the relevant feature tests plus manual browser verification when the change is visual.
 - If a change affects signed URLs, authorization, or realtime entry boundaries, make sure failure paths are asserted explicitly.
 

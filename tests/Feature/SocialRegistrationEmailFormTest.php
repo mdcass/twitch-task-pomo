@@ -130,7 +130,7 @@ class SocialRegistrationEmailFormTest extends TestCase
         Livewire::test(SocialRegistrationEmailForm::class)
             ->set('fields.email', 'existing@example.test')
             ->call('submit')
-            ->assertSee('That email already belongs to an existing account.');
+            ->assertSee('already belongs to an existing account here.');
 
         $this->assertGuest();
         $this->assertDatabaseCount('provider_auths', 0);
