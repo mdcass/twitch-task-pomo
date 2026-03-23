@@ -43,7 +43,8 @@
         </div>
 
         <div class="navbar-vertical-footer">
-            <button type="button" class="btn navbar-vertical-toggle border-0 fw-semibold w-100 white-space-nowrap d-flex align-items-center">
+            <button type="button"
+                class="btn navbar-vertical-toggle border-0 fw-semibold w-100 white-space-nowrap d-flex align-items-center">
                 <span class="uil uil-left-arrow-to-left fs-8"></span>
                 <span class="uil uil-arrow-from-right fs-8"></span>
                 <span class="navbar-vertical-footer-text ms-2">{{ __('Collapsed View') }}</span>
@@ -52,29 +53,25 @@
     </nav>
 @endif
 
-<nav
-    id="{{ $topNavId }}"
-    @class([
-        $layoutDefinition['top_nav_class'],
-        'navbar-top',
-        'fixed-top',
-        'navbar-expand-lg' => in_array($layout, ['horizontal', 'combo', 'dual-nav'], true),
-    ])
-    @if ($navbarAppearance)
-        data-navbar-appearance="{{ $navbarAppearance }}"
-    @endif
-    @if ($navbarTop)
-        data-navbar-top="{{ $navbarTop }}"
-    @endif
-    @if ($moveTarget)
-        data-move-target="{{ $moveTarget }}"
-    @endif
->
+<nav id="{{ $topNavId }}" @class([
+    $layoutDefinition['top_nav_class'],
+    'navbar-top',
+    'fixed-top',
+    'navbar-expand-lg' => in_array(
+        $layout,
+        ['horizontal', 'combo', 'dual-nav'],
+        true),
+])
+    @if ($navbarAppearance) data-navbar-appearance="{{ $navbarAppearance }}" @endif
+    @if ($navbarTop) data-navbar-top="{{ $navbarTop }}" @endif
+    @if ($moveTarget) data-move-target="{{ $moveTarget }}" @endif>
     @if ($layout === 'dual-nav')
         <div class="w-100">
             <div class="d-flex flex-between-center dual-nav-first-layer">
                 <div class="navbar-logo">
-                    <button class="btn navbar-toggler navbar-toggler-humburger-icon hover-bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTopCollapse" aria-controls="navbarTopCollapse" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
+                    <button class="btn navbar-toggler navbar-toggler-humburger-icon hover-bg-transparent" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#navbarTopCollapse" aria-controls="navbarTopCollapse"
+                        aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                         <span class="navbar-toggle-icon"><span class="toggle-line"></span></span>
                     </button>
 
@@ -84,48 +81,34 @@
                 <x-shell.utilities :utility="$utility" />
             </div>
 
-            <x-shell.top-nav
-                :items="$topNavigationItems"
-                collapse-id="navbarTopCollapse"
-                collapse-classes="navbar-top-collapse justify-content-center"
-            />
+            <x-shell.top-nav :items="$topNavigationItems" collapse-id="navbarTopCollapse"
+                collapse-classes="navbar-top-collapse justify-content-center" />
         </div>
     @elseif (in_array($layout, ['horizontal', 'combo'], true))
         <div class="navbar-logo">
-            <button
-                class="btn navbar-toggler navbar-toggler-humburger-icon hover-bg-transparent"
-                type="button"
+            <button class="btn navbar-toggler navbar-toggler-humburger-icon hover-bg-transparent" type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#{{ $layoutDefinition['sidebar'] ? 'navbarVerticalCollapse' : 'navbarTopCollapse' }}"
                 aria-controls="{{ $layoutDefinition['sidebar'] ? 'navbarVerticalCollapse' : 'navbarTopCollapse' }}"
-                aria-expanded="false"
-                aria-label="{{ __('Toggle navigation') }}"
-            >
+                aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                 <span class="navbar-toggle-icon"><span class="toggle-line"></span></span>
             </button>
 
             <x-shell.brand :product-name="$productName" />
         </div>
 
-        <x-shell.top-nav
-            :items="$topNavigationItems"
-            collapse-id="navbarTopCollapse"
-            collapse-classes="navbar-top-collapse order-1 order-lg-0 justify-content-center"
-        />
+        <x-shell.top-nav :items="$topNavigationItems" collapse-id="navbarTopCollapse"
+            collapse-classes="navbar-top-collapse order-1 order-lg-0 justify-content-center" />
 
         <x-shell.utilities :utility="$utility" />
     @else
         <div class="collapse navbar-collapse justify-content-between">
             <div class="navbar-logo">
-                <button
-                    class="btn navbar-toggler navbar-toggler-humburger-icon hover-bg-transparent"
-                    type="button"
+                <button class="btn navbar-toggler navbar-toggler-humburger-icon hover-bg-transparent" type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#{{ $layoutDefinition['sidebar'] ? 'navbarVerticalCollapse' : 'navbarTopCollapse' }}"
                     aria-controls="{{ $layoutDefinition['sidebar'] ? 'navbarVerticalCollapse' : 'navbarTopCollapse' }}"
-                    aria-expanded="false"
-                    aria-label="{{ __('Toggle navigation') }}"
-                >
+                    aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                     <span class="navbar-toggle-icon"><span class="toggle-line"></span></span>
                 </button>
 

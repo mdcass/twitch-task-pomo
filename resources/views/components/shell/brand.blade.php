@@ -1,6 +1,4 @@
-@props([
-    'productName',
-])
+@props(['productName'])
 
 <a class="navbar-brand me-1 me-sm-3" href="{{ route('dashboard', absolute: false) }}">
     <div class="d-flex align-items-center">

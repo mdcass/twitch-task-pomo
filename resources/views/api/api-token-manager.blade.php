@@ -25,7 +25,7 @@
                     <div class="row row-cols-1 row-cols-md-2 g-3 mt-1">
                         @foreach (Laravel\Jetstream\Jetstream::$permissions as $permission)
                             <label class="col d-flex align-items-center gap-2">
-                                <x-checkbox wire:model="createApiTokenForm.permissions" :value="$permission"/>
+                                <x-checkbox wire:model="createApiTokenForm.permissions" :value="$permission" />
                                 <span class="small text-body-secondary">{{ $permission }}</span>
                             </label>
                         @endforeach
@@ -63,7 +63,8 @@
                 <x-slot name="content">
                     <div class="d-flex flex-column gap-4">
                         @foreach ($this->user->tokens->sortBy('name') as $token)
-                            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                            <div
+                                class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
                                 <div style="word-break: break-all;">
                                     {{ $token->name }}
                                 </div>
@@ -76,12 +77,15 @@
                                     @endif
 
                                     @if (Laravel\Jetstream\Jetstream::hasPermissions())
-                                        <button class="btn btn-link btn-sm p-0 text-body-tertiary text-decoration-underline" wire:click="manageApiTokenPermissions({{ $token->id }})">
+                                        <button
+                                            class="btn btn-link btn-sm p-0 text-body-tertiary text-decoration-underline"
+                                            wire:click="manageApiTokenPermissions({{ $token->id }})">
                                             {{ __('Permissions') }}
                                         </button>
                                     @endif
 
-                                    <button class="btn btn-link btn-sm p-0 text-danger" wire:click="confirmApiTokenDeletion({{ $token->id }})">
+                                    <button class="btn btn-link btn-sm p-0 text-danger"
+                                        wire:click="confirmApiTokenDeletion({{ $token->id }})">
                                         {{ __('Delete') }}
                                     </button>
                                 </div>
@@ -105,10 +109,9 @@
             </div>
 
             <x-input x-ref="plaintextToken" type="text" readonly :value="$plainTextToken"
-                class="mt-4 font-monospace text-body-secondary bg-body-secondary"
-                autofocus autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                @showing-token-modal.window="setTimeout(() => $refs.plaintextToken.select(), 250)"
-            />
+                class="mt-4 font-monospace text-body-secondary bg-body-secondary" autofocus autocomplete="off"
+                autocorrect="off" autocapitalize="off" spellcheck="false"
+                @showing-token-modal.window="setTimeout(() => $refs.plaintextToken.select(), 250)" />
         </x-slot>
 
         <x-slot name="footer">
@@ -128,7 +131,7 @@
             <div class="row row-cols-1 row-cols-md-2 g-3">
                 @foreach (Laravel\Jetstream\Jetstream::$permissions as $permission)
                     <label class="col d-flex align-items-center gap-2">
-                        <x-checkbox wire:model="updateApiTokenForm.permissions" :value="$permission"/>
+                        <x-checkbox wire:model="updateApiTokenForm.permissions" :value="$permission" />
                         <span class="small text-body-secondary">{{ $permission }}</span>
                     </label>
                 @endforeach

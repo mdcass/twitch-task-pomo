@@ -7,7 +7,8 @@
                     Streaming overlays, built on release-intent primitives.
                 </h2>
                 <p class="text-body-secondary mb-0">
-                    This shell keeps the app on product-owned Blade and Vite assets while using Phoenix as the Bootstrap design source.
+                    This shell keeps the app on product-owned Blade and Vite assets while using Phoenix as the Bootstrap
+                    design source.
                 </p>
             </div>
 

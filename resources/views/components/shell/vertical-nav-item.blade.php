@@ -2,23 +2,18 @@
 
 @php
     $children = $item['children'] ?? [];
-    $collapseId = 'shell-nav-'.$item['id'];
+    $collapseId = 'shell-nav-' . $item['id'];
 @endphp
 
 <div class="nav-item-wrapper">
     @if ($children !== [])
-        <a
-            class="nav-link dropdown-indicator label-1 {{ $item['active'] ? 'active' : '' }}"
-            href="#{{ $collapseId }}"
-            role="button"
-            data-bs-toggle="collapse"
-            aria-expanded="{{ $item['active'] ? 'true' : 'false' }}"
-            aria-controls="{{ $collapseId }}"
-        >
-                <div class="d-flex align-items-center">
-                    <div class="dropdown-indicator-icon-wrapper">
-                        <span class="fas fa-caret-right dropdown-indicator-icon"></span>
-                    </div>
+        <a class="nav-link dropdown-indicator label-1 {{ $item['active'] ? 'active' : '' }}" href="#{{ $collapseId }}"
+            role="button" data-bs-toggle="collapse" aria-expanded="{{ $item['active'] ? 'true' : 'false' }}"
+            aria-controls="{{ $collapseId }}">
+            <div class="d-flex align-items-center">
+                <div class="dropdown-indicator-icon-wrapper">
+                    <span class="fas fa-caret-right dropdown-indicator-icon"></span>
+                </div>
                 <span class="nav-link-icon"><span class="{{ $item['icon'] }}"></span></span>
                 <span class="nav-link-text">{{ $item['label'] }}</span>
             </div>

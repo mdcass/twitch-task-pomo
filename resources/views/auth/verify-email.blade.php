@@ -3,7 +3,9 @@
 
     <div class="text-center mb-4">
         <h1 class="h3 mb-2">{{ __('Verify your email address') }}</h1>
-        <p class="mb-0">{{ __('Please click on the link sent to your email address. If you didn\'t receive the email, we will gladly send you another.') }}</p>
+        <p class="mb-0">
+            {{ __('Please click on the link sent to your email address. If you didn\'t receive the email, we will gladly send you another.') }}
+        </p>
     </div>
 
     @if (session('status') == 'verification-link-sent')

@@ -5,7 +5,9 @@
 
             <h2 class="display-6 fw-semibold mb-3">Foundation shell migrated onto Phoenix and Bootstrap.</h2>
             <p class="text-body-secondary mb-4">
-                The app is now using product-owned Bootstrap and Phoenix-inspired primitives for auth, navigation, profile management, and team settings. Future UI work can extend this shell instead of building on the stock Tailwind scaffolding.
+                The app is now using product-owned Bootstrap and Phoenix-inspired primitives for auth, navigation,
+                profile management, and team settings. Future UI work can extend this shell instead of building on the
+                stock Tailwind scaffolding.
             </p>
 
             <div class="row g-3">
@@ -37,7 +39,8 @@
                 <div class="twitch-stat-card p-4">
                     <div class="small text-uppercase fw-bold text-body-tertiary mb-2">Adopted</div>
                     <h3 class="h4 mb-2">Shared auth and account management primitives</h3>
-                    <p class="text-body-secondary mb-0">Inputs, buttons, cards, dropdowns, modals, and the top-level dashboard shell now follow the Phoenix visual language.</p>
+                    <p class="text-body-secondary mb-0">Inputs, buttons, cards, dropdowns, modals, and the top-level
+                        dashboard shell now follow the Phoenix visual language.</p>
                 </div>
             </div>
 
@@ -45,7 +48,8 @@
                 <div class="twitch-stat-card p-4">
                     <div class="small text-uppercase fw-bold text-body-tertiary mb-2">Deferred</div>
                     <h3 class="h4 mb-2">Demo dashboards and heavy vendor bundles</h3>
-                    <p class="text-body-secondary mb-0">Charts, editors, maps, support chat, and larger Phoenix demos remain reference-only until product requirements justify them.</p>
+                    <p class="text-body-secondary mb-0">Charts, editors, maps, support chat, and larger Phoenix demos
+                        remain reference-only until product requirements justify them.</p>
                 </div>
             </div>
         </div>

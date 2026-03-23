@@ -8,64 +8,60 @@
 @endphp
 
 <!DOCTYPE html>
-<html
-    lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
     data-navigation-type="{{ $layoutDefinition['navigation_type'] }}"
-    data-navbar-horizontal-shape="{{ $layoutDefinition['navbar_horizontal_shape'] }}"
->
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+    data-navbar-horizontal-shape="{{ $layoutDefinition['navbar_horizontal_shape'] }}">
 
-        <title>{{ $productName }}</title>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <title>{{ $productName }}</title>
 
-        <script>
-            (() => {
-                const storedTheme = localStorage.getItem('phoenixTheme') ?? 'light';
-                const theme = storedTheme === 'auto'
-                    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-                    : storedTheme;
-                const sidebarCollapsed = localStorage.getItem('phoenixIsNavbarVerticalCollapsed') === 'true';
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap"
+        rel="stylesheet">
 
-                document.documentElement.setAttribute('data-bs-theme', theme);
-                document.documentElement.classList.toggle('navbar-vertical-collapsed', sidebarCollapsed);
-            })();
-        </script>
+    <script>
+        (() => {
+            const storedTheme = localStorage.getItem('phoenixTheme') ?? 'light';
+            const theme = storedTheme === 'auto' ?
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') :
+                storedTheme;
+            const sidebarCollapsed = localStorage.getItem('phoenixIsNavbarVerticalCollapsed') === 'true';
 
-        @vite(['resources/css/phoenix/app.scss', 'resources/js/phoenix/app.js'])
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            document.documentElement.classList.toggle('navbar-vertical-collapsed', sidebarCollapsed);
+        })();
+    </script>
 
-        @livewireStyles
-    </head>
-    <body @class(['text-body', $layoutDefinition['body_class']])>
-        <x-banner />
+    @vite(['resources/css/phoenix/app.scss', 'resources/js/phoenix/app.js'])
 
-        <main class="main" data-shell-layout="{{ $layout }}" id="top">
-            <x-shell.layout
-                :layout="$layout"
-                :layout-definition="$layoutDefinition"
-                :sections="$sections"
-                :top-navigation-items="$topNavigationItems"
-                :utility="$utility"
-                :product-name="$productName"
-            />
-            <div class="content">
-                @if (isset($header))
-                    <header>
-                        {{ $header }}
-                    </header>
-                @endif
+    @livewireStyles
+</head>
 
-                {{ $slot }}
-            </div>
-        </main>
+<body @class(['text-body', $layoutDefinition['body_class']])>
+    <x-banner />
 
-        @stack('modals')
+    <main class="main" data-shell-layout="{{ $layout }}" id="top">
+        <x-shell.layout :layout="$layout" :layout-definition="$layoutDefinition" :sections="$sections" :top-navigation-items="$topNavigationItems" :utility="$utility"
+            :product-name="$productName" />
+        <div class="content">
+            @if (isset($header))
+                <header>
+                    {{ $header }}
+                </header>
+            @endif
 
-        @livewireScripts
-    </body>
+            {{ $slot }}
+        </div>
+    </main>
+
+    @stack('modals')
+
+    @livewireScripts
+</body>
+
 </html>

@@ -22,28 +22,29 @@
 
                 <div class="mb-3" x-show="! recovery">
                     <x-label for="code" value="{{ __('Code') }}" />
-                    <x-input id="code" class="mt-2" type="text" inputmode="numeric" name="code" autofocus x-ref="code" autocomplete="one-time-code" />
+                    <x-input id="code" class="mt-2" type="text" inputmode="numeric" name="code" autofocus
+                        x-ref="code" autocomplete="one-time-code" />
                 </div>
 
                 <div class="mb-3" x-cloak x-show="recovery">
                     <x-label for="recovery_code" value="{{ __('Recovery Code') }}" />
-                    <x-input id="recovery_code" class="mt-2" type="text" name="recovery_code" x-ref="recovery_code" autocomplete="one-time-code" />
+                    <x-input id="recovery_code" class="mt-2" type="text" name="recovery_code" x-ref="recovery_code"
+                        autocomplete="one-time-code" />
                 </div>
 
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mt-4">
                     <button type="button" class="btn btn-link px-0 text-decoration-none fw-semibold"
-                                    x-show="! recovery"
-                                    x-on:click="
+                        x-show="! recovery"
+                        x-on:click="
                                         recovery = true;
                                         $nextTick(() => { $refs.recovery_code.focus() })
                                     ">
                         {{ __('Use a recovery code') }}
                     </button>
 
-                    <button type="button" class="btn btn-link px-0 text-decoration-none fw-semibold"
-                                    x-cloak
-                                    x-show="recovery"
-                                    x-on:click="
+                    <button type="button" class="btn btn-link px-0 text-decoration-none fw-semibold" x-cloak
+                        x-show="recovery"
+                        x-on:click="
                                         recovery = false;
                                         $nextTick(() => { $refs.code.focus() })
                                     ">

@@ -24,13 +24,8 @@
         <form wire:submit="submit" class="mt-4">
             <div class="mb-3 text-start">
                 <x-auth.field-label for="social_email" :value="__('Email address')" />
-                <x-input
-                    id="social_email"
-                    type="email"
-                    wire:model.blur="fields.email"
-                    autocomplete="username"
-                    required
-                />
+                <x-input id="social_email" type="email" wire:model.blur="fields.email" autocomplete="username"
+                    required />
                 <x-input-error for="fields.email" class="mt-2" />
             </div>
 
@@ -47,7 +42,8 @@
         </form>
     @elseif ($this->isExistingAccountHandoff)
         <div class="text-center mb-4">
-            <div class="fw-semibold mb-2">The email address for your {{ $this->providerLabel }} account already belongs to an existing account here.</div>
+            <div class="fw-semibold mb-2">The email address for your {{ $this->providerLabel }} account already belongs
+                to an existing account here.</div>
             <p class="mb-0">
                 Sign in with your original registration method for
                 <span class="fw-bolder">{{ $this->attemptedEmail }}</span>
@@ -57,7 +53,8 @@
 
         <div class="d-grid gap-2">
             <a class="btn btn-primary fw-bolder" href="{{ route('login') }}">{{ __('Sign In') }}</a>
-            <a class="btn btn-outline-secondary fw-semibold" href="{{ route('register') }}">{{ __('Back to Register') }}</a>
+            <a class="btn btn-outline-secondary fw-semibold"
+                href="{{ route('register') }}">{{ __('Back to Register') }}</a>
         </div>
     @endif
 </div>

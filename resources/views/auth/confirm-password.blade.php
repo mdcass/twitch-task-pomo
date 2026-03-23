@@ -6,7 +6,8 @@
 
         <div class="text-center text-lg-start mb-4">
             <h1 class="h3 mb-2">{{ __('Confirm your password') }}</h1>
-            <p class="text-body-secondary mb-0">{{ __('This protected action requires a quick password confirmation.') }}</p>
+            <p class="text-body-secondary mb-0">{{ __('This protected action requires a quick password confirmation.') }}
+            </p>
         </div>
 
         <div class="alert alert-info mb-4">
@@ -20,7 +21,8 @@
 
             <div class="mb-4">
                 <x-label for="password" value="{{ __('Password') }}" />
-                <x-input id="password" class="mt-2" type="password" name="password" required autocomplete="current-password" autofocus />
+                <x-input id="password" class="mt-2" type="password" name="password" required
+                    autocomplete="current-password" autofocus />
             </div>
 
             <div class="d-grid">

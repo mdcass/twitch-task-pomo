@@ -1,71 +1,36 @@
-@props([
-    'utility',
-])
+@props(['utility'])
 
 <ul class="navbar-nav navbar-nav-icons flex-row">
     <li class="nav-item">
         <div class="theme-control-toggle px-2">
-            <input
-                class="form-check-input ms-0 theme-control-toggle-input"
-                type="checkbox"
-                data-theme-control="phoenixTheme"
-                value="dark"
-                id="themeControlToggle"
-            >
-            <label
-                class="mb-0 theme-control-toggle-label theme-control-toggle-light"
-                for="themeControlToggle"
-                data-bs-toggle="tooltip"
-                data-bs-placement="left"
-                data-bs-title="{{ __('Switch theme') }}"
-                style="height:32px;width:32px;"
-            >
+            <input class="form-check-input ms-0 theme-control-toggle-input" type="checkbox"
+                data-theme-control="phoenixTheme" value="dark" id="themeControlToggle">
+            <label class="mb-0 theme-control-toggle-label theme-control-toggle-light" for="themeControlToggle"
+                data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="{{ __('Switch theme') }}"
+                style="height:32px;width:32px;">
                 <span class="icon uil uil-moon fs-8"></span>
             </label>
-            <label
-                class="mb-0 theme-control-toggle-label theme-control-toggle-dark"
-                for="themeControlToggle"
-                data-bs-toggle="tooltip"
-                data-bs-placement="left"
-                data-bs-title="{{ __('Switch theme') }}"
-                style="height:32px;width:32px;"
-            >
+            <label class="mb-0 theme-control-toggle-label theme-control-toggle-dark" for="themeControlToggle"
+                data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="{{ __('Switch theme') }}"
+                style="height:32px;width:32px;">
                 <span class="icon uil uil-sun fs-8"></span>
             </label>
         </div>
     </li>
 
     <li class="nav-item dropdown">
-        <a
-            class="nav-link lh-1 pe-0"
-            id="navbarDropdownUser"
-            href="#"
-            role="button"
-            data-bs-toggle="dropdown"
-            data-bs-auto-close="outside"
-            aria-haspopup="true"
-            aria-expanded="false"
-            style="min-width: 2.25rem"
-        >
-            <x-shell.user-avatar
-                :name="$utility['name']"
-                :initials="$utility['initials']"
-                :url="$utility['profile_photo_url'] ?? $utility['provider_avatar_url']"
-                size="l"
-            />
+        <a class="nav-link lh-1 pe-0" id="navbarDropdownUser" href="#" role="button" data-bs-toggle="dropdown"
+            data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false" style="min-width: 2.25rem">
+            <x-shell.user-avatar :name="$utility['name']" :initials="$utility['initials']" :url="$utility['profile_photo_url'] ?? $utility['provider_avatar_url']" size="l" />
         </a>
 
-        <div class="dropdown-menu dropdown-menu-end navbar-dropdown-caret py-0 dropdown-profile shadow border" aria-labelledby="navbarDropdownUser">
+        <div class="dropdown-menu dropdown-menu-end navbar-dropdown-caret py-0 dropdown-profile shadow border"
+            aria-labelledby="navbarDropdownUser">
             <div class="card position-relative border-0">
                 <div class="card-body p-0">
                     <div class="text-center pt-4 pb-3">
-                        <x-shell.user-avatar
-                            :name="$utility['name']"
-                            :initials="$utility['initials']"
-                            :url="$utility['profile_photo_url'] ?? $utility['provider_avatar_url']"
-                            size="xl"
-                            class="mx-auto"
-                        />
+                        <x-shell.user-avatar :name="$utility['name']" :initials="$utility['initials']" :url="$utility['profile_photo_url'] ?? $utility['provider_avatar_url']" size="xl"
+                            class="mx-auto" />
                         <h6 class="mt-2 text-body-emphasis">{{ $utility['name'] }}</h6>
                         @if ($utility['current_team_name'])
                             <p class="text-body-tertiary fs-9 mb-0">{{ $utility['current_team_name'] }}</p>

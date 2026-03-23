@@ -18,7 +18,8 @@
                 </div>
 
                 @if (isset($actions))
-                    <div class="card-footer bg-body-tertiary d-flex align-items-center justify-content-end gap-3 flex-wrap">
+                    <div
+                        class="card-footer bg-body-tertiary d-flex align-items-center justify-content-end gap-3 flex-wrap">
                         {{ $actions }}
                     </div>
                 @endif

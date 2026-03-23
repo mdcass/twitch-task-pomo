@@ -6,10 +6,12 @@
         <p class="text-body-tertiary mb-0">Get access to your overlay composers and streamer tools</p>
     </div>
 
-    <x-auth.social-button href="{{ route('oauth.redirect', ['provider' => 'twitch', 'flow' => 'login']) }}" icon="fa-brands fa-twitch" iconColorClass="text-primary" class="mb-3">
+    <x-auth.social-button href="{{ route('oauth.redirect', ['provider' => 'twitch', 'flow' => 'login']) }}"
+        icon="fa-brands fa-twitch" iconColorClass="text-primary" class="mb-3">
         {{ __('Sign in with Twitch') }}
     </x-auth.social-button>
-    <x-auth.social-button href="{{ route('oauth.redirect', ['provider' => 'discord', 'flow' => 'login']) }}" icon="fa-brands fa-discord" iconColorClass="text-info">
+    <x-auth.social-button href="{{ route('oauth.redirect', ['provider' => 'discord', 'flow' => 'login']) }}"
+        icon="fa-brands fa-discord" iconColorClass="text-info">
         {{ __('Sign in with Discord') }}
     </x-auth.social-button>
 
@@ -29,29 +31,11 @@
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
-        <x-auth.icon-field
-            id="email"
-            name="email"
-            :label="__('Email address')"
-            icon="fa-solid fa-envelope"
-            type="email"
-            :value="old('email')"
-            placeholder="name@example.com"
-            required
-            autofocus
-            autocomplete="username"
-        />
+        <x-auth.icon-field id="email" name="email" :label="__('Email address')" icon="fa-solid fa-envelope" type="email"
+            :value="old('email')" placeholder="name@example.com" required autofocus autocomplete="username" />
 
-        <x-auth.icon-field
-            id="password"
-            name="password"
-            :label="__('Password')"
-            icon="fa-solid fa-key"
-            type="password"
-            :placeholder="__('Password')"
-            required
-            autocomplete="current-password"
-        />
+        <x-auth.icon-field id="password" name="password" :label="__('Password')" icon="fa-solid fa-key" type="password"
+            :placeholder="__('Password')" required autocomplete="current-password" />
 
         <div class="row flex-between-center mb-7">
             <div class="col-auto">

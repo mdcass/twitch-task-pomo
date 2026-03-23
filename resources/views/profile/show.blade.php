@@ -3,7 +3,8 @@
         <div>
             <div class="small text-uppercase fw-bold text-body-tertiary mb-2">{{ __('Account') }}</div>
             <h1 class="h2 mb-1">{{ __('Profile') }}</h1>
-            <p class="text-body-secondary mb-0">Manage your account details, password, two-factor authentication, and active sessions.</p>
+            <p class="text-body-secondary mb-0">Manage your account details, password, two-factor authentication, and
+                active sessions.</p>
         </div>
     </x-slot>
 
