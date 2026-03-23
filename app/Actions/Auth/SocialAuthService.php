@@ -4,26 +4,25 @@ namespace App\Actions\Auth;
 
 use App\Enums\ExternalAuthProvider;
 use App\Enums\OauthFlow;
-use App\Enums\UserSettingKey;
 use App\Models\ProviderAuth;
 use App\Models\User;
+use App\Workflows\Auth\SocialAuthHandshakeWorkflow;
+use App\Workflows\Auth\SocialRegistrationWorkflow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
-use Laravel\Jetstream\Jetstream;
 use Laravel\Socialite\Contracts\Factory as SocialiteFactory;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Throwable;
 
 class SocialAuthService
 {
-    private const SESSION_KEY = 'oauth.pending';
-
     public function __construct(
         private readonly SocialiteFactory $socialite,
+        private readonly CompleteSocialRegistration $completeSocialRegistration,
+        private readonly CompleteRegistration $completeRegistration,
     ) {}
 
     /**
@@ -34,36 +33,53 @@ class SocialAuthService
         ExternalAuthProvider $provider,
         OauthFlow $flow,
         ?array $legalAcceptance = null,
+        ?string $debugOverride = null,
     ): RedirectResponse {
-        $pendingAuth = [
+        $workflow = new SocialAuthHandshakeWorkflow();
+
+        $workflow->apply('start_redirect', [
             'provider' => $provider->value,
             'flow' => $flow->value,
-        ];
-
-        if ($flow === OauthFlow::Register && $legalAcceptance !== null) {
-            $pendingAuth['legal_acceptance'] = $legalAcceptance;
-        }
-
-        $request->session()->put(self::SESSION_KEY, $pendingAuth);
+            'legal_acceptance' => $flow === OauthFlow::Register ? $legalAcceptance : null,
+            'debug_override' => $flow === OauthFlow::Register && $this->shouldUseDebugEmailOverride()
+                ? $debugOverride
+                : null,
+        ]);
+        $workflow->saveStore(useSession: true);
 
         return $this->driver($provider)->redirect();
     }
 
     public function callback(Request $request, ExternalAuthProvider $provider): RedirectResponse
     {
-        $pendingAuth = $request->session()->pull(self::SESSION_KEY);
+        $handshake = SocialAuthHandshakeWorkflow::fromSession();
 
-        if (! is_array($pendingAuth) || ($pendingAuth['provider'] ?? null) !== $provider->value) {
+        if (! $handshake instanceof SocialAuthHandshakeWorkflow) {
             return redirect()->route('login')->withErrors([
                 'social' => 'Your '.$provider->label().' sign-in session expired. Please try again.',
             ]);
         }
 
-        $flow = OauthFlow::tryFrom($pendingAuth['flow'] ?? '') ?? OauthFlow::Login;
+        if ($handshake->getInitialContextValue('provider') !== $provider->value) {
+            $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
+
+            return redirect()->route('login')->withErrors([
+                'social' => 'Your '.$provider->label().' sign-in session expired. Please try again.',
+            ]);
+        }
+
+        $flow = OauthFlow::tryFrom((string) $handshake->getInitialContextValue('flow')) ?? OauthFlow::Login;
 
         try {
             $providerUser = $this->driver($provider)->user();
         } catch (Throwable) {
+            $handshake->apply('fail_callback', [
+                'provider' => $provider->value,
+                'flow' => $flow->value,
+            ]);
+            $handshake->close()->saveStore();
+            $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
+
             return $this->redirectForFlow($flow, [
                 'social' => 'We could not complete your '.$provider->label().' sign-in. Please try again.',
             ]);
@@ -77,53 +93,84 @@ class SocialAuthService
 
         if ($providerAuth !== null && $providerAuth->user !== null) {
             $this->updateProviderAuth($providerAuth, $providerUser);
+            $handshake->apply('complete_login', [
+                'provider_auth_id' => $providerAuth->id,
+                'user_id' => $providerAuth->user->id,
+            ]);
+            $handshake->close()->saveStore();
+            $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
             $this->login($request, $providerAuth->user);
 
             return redirect()->intended(route('dashboard'));
         }
 
         if ($flow !== OauthFlow::Register) {
+            $handshake->apply('fail_callback', [
+                'provider' => $provider->value,
+                'flow' => $flow->value,
+                'reason' => 'provider_auth_missing',
+            ]);
+            $handshake->close()->saveStore();
+            $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
+
             return redirect()->route('register')->withErrors([
                 'social' => 'No '.$provider->label().' account is linked here yet. Start from registration to create a new account.',
             ]);
         }
 
-        $providerEmail = $this->normalizeEmail($providerUser->getEmail());
+        $providerEmail = $this->resolveEffectiveProviderEmail(
+            providerUser: $providerUser,
+            debugOverride: $this->resolveDebugOverride($handshake),
+        );
 
         if ($providerEmail === null) {
-            return redirect()->route('register')->withErrors([
-                'social' => $provider->label().' did not return an email address. Use email registration for now.',
-            ]);
+            return $this->startOnboardingWorkflow(
+                request: $request,
+                handshake: $handshake,
+                provider: $provider,
+                providerUser: $providerUser,
+                providerUserId: $providerUserId,
+                providerEmail: null,
+            );
         }
 
-        $matchingUserExists = User::query()
-            ->whereRaw('LOWER(email) = ?', [$providerEmail])
-            ->exists();
-
-        if ($matchingUserExists) {
-            return redirect()->route('login')->withErrors([
-                'social' => 'That email already belongs to an existing account. Sign in with your original method, then link '.$provider->label().' from your account later.',
-            ]);
+        if ($this->completeSocialRegistration->emailBelongsToExistingUser($providerEmail)) {
+            return $this->startOnboardingWorkflow(
+                request: $request,
+                handshake: $handshake,
+                provider: $provider,
+                providerUser: $providerUser,
+                providerUserId: $providerUserId,
+                providerEmail: $providerEmail,
+                startBlocked: true,
+            );
         }
 
-        $user = DB::transaction(function () use ($pendingAuth, $provider, $providerEmail, $providerUser, $providerUserId): User {
-            $user = new User;
-            $user->forceFill([
-                'name' => $this->resolveDisplayName($providerUser, $providerEmail, $provider),
-                'email' => $providerEmail,
-                'email_verified_at' => now(),
-                'password' => Hash::make(Str::password(32)),
-            ])->save();
+        $user = $this->completeSocialRegistration->complete([
+            'name' => $this->resolveDisplayName($providerUser, $providerEmail, $provider),
+            'email' => $providerEmail,
+            'provider' => $provider,
+            'provider_user_id' => $providerUserId,
+            'provider_email' => $providerEmail,
+            'avatar_url' => $this->resolveAvatarUrl($providerUser),
+            'access_token' => $providerUser->token,
+            'refresh_token' => $providerUser->refreshToken,
+            'expires_in' => $providerUser->expiresIn !== null ? (int) $providerUser->expiresIn : null,
+            'scopes' => $this->resolveApprovedScopes($providerUser),
+            'profile' => $this->resolveProfile($providerUser),
+            'legal_acceptance' => $this->resolveLegalAcceptance($handshake),
+        ]);
 
-            $this->createProviderAuth($user, $provider, $providerUserId, $providerEmail, $providerUser);
-            $this->recordLegalAcceptance($user, $pendingAuth['legal_acceptance'] ?? null);
+        $handshake->apply('complete_registration', [
+            'registered_user_id' => $user->id,
+            'registered_email' => $user->email,
+        ]);
+        $handshake->close()->saveStore();
+        $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
 
-            return $user;
-        });
+        $this->completeRegistration->handle($request, $user);
 
-        $this->login($request, $user);
-
-        return redirect()->intended(route('dashboard'));
+        return redirect()->route('verification.notice');
     }
 
     private function driver(ExternalAuthProvider $provider)
@@ -137,11 +184,9 @@ class SocialAuthService
         return $driver;
     }
 
-    private function resolveFlow(Request $request): string
+    public function shouldUseDebugEmailOverride(): bool
     {
-        return Validator::make($request->query(), [
-            'flow' => ['required', 'in:login,register'],
-        ])->validated()['flow'];
+        return app()->isLocal();
     }
 
     /**
@@ -164,24 +209,6 @@ class SocialAuthService
         $providerAuth->save();
     }
 
-    private function createProviderAuth(
-        User $user,
-        ExternalAuthProvider $provider,
-        string $providerUserId,
-        ?string $providerEmail,
-        SocialiteUser $providerUser,
-    ): void {
-        $user->providerAuths()->create($this->providerAuthAttributes(
-            $provider,
-            $providerUserId,
-            $providerEmail,
-            $providerUser,
-        ));
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function providerAuthAttributes(
         ExternalAuthProvider $provider,
         string $providerUserId,
@@ -192,6 +219,7 @@ class SocialAuthService
             'provider' => $provider,
             'provider_user_id' => $providerUserId,
             'provider_email' => $providerEmail,
+            'avatar_url' => $this->resolveAvatarUrl($providerUser),
             'access_token' => $providerUser->token,
             'refresh_token' => $providerUser->refreshToken,
             'token_expires_at' => $providerUser->expiresIn !== null ? now()->addSeconds((int) $providerUser->expiresIn) : null,
@@ -236,12 +264,17 @@ class SocialAuthService
         return is_array($raw) ? $raw : [];
     }
 
-    private function resolveDisplayName(SocialiteUser $providerUser, string $providerEmail, ExternalAuthProvider $provider): string
+    private function resolveDisplayName(SocialiteUser $providerUser, ?string $providerEmail, ExternalAuthProvider $provider): string
     {
         return $providerUser->getName()
             ?? $providerUser->getNickname()
-            ?? Str::before($providerEmail, '@')
+            ?? (is_string($providerEmail) ? Str::before($providerEmail, '@') : null)
             ?? $provider->label().' User';
+    }
+
+    private function resolveAvatarUrl(SocialiteUser $providerUser): ?string
+    {
+        return $this->normalizeHttpsUrl($providerUser->getAvatar());
     }
 
     private function normalizeEmail(?string $email): ?string
@@ -255,58 +288,111 @@ class SocialAuthService
         return $normalized !== '' ? $normalized : null;
     }
 
-    /**
-     * @param  array<string, string>|null  $legalAcceptance
-     */
-    private function recordLegalAcceptance(User $user, ?array $legalAcceptance): void
+    private function normalizeHttpsUrl(?string $url): ?string
     {
-        if (! Jetstream::hasTermsAndPrivacyPolicyFeature() || $legalAcceptance === null) {
-            return;
+        if ($url === null) {
+            return null;
         }
 
-        $acceptedAt = now()->toIso8601String();
-        $termsAcceptedAt = $legalAcceptance['terms_of_service_accepted_at'] ?? $acceptedAt;
-        $privacyAcceptedAt = $legalAcceptance['privacy_policy_accepted_at'] ?? $acceptedAt;
-        $version = now()->toDateString();
+        $normalized = trim($url);
 
-        $user->userSettings()->updateOrCreate(
-            ['key' => UserSettingKey::LegalAcceptanceHistory],
-            [
-                'value' => [
-                    'current' => [
-                        'terms_of_service_accepted_at' => $termsAcceptedAt,
-                        'privacy_policy_accepted_at' => $privacyAcceptedAt,
-                    ],
-                    'history' => [
-                        [
-                            'document' => 'terms_of_service',
-                            'version' => $version,
-                            'accepted_at' => $termsAcceptedAt,
-                            'source' => 'social_register',
-                            'source_metadata' => [
-                                'provider' => 'socialite',
-                                'route' => 'register',
-                            ],
-                        ],
-                        [
-                            'document' => 'privacy_policy',
-                            'version' => $version,
-                            'accepted_at' => $privacyAcceptedAt,
-                            'source' => 'social_register',
-                            'source_metadata' => [
-                                'provider' => 'socialite',
-                                'route' => 'register',
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        );
+        if ($normalized === '' || filter_var($normalized, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+
+        return strcasecmp((string) parse_url($normalized, PHP_URL_SCHEME), 'https') === 0
+            ? $normalized
+            : null;
+    }
+
+    private function resolveEffectiveProviderEmail(SocialiteUser $providerUser, ?string $debugOverride): ?string
+    {
+        if ($this->shouldUseDebugEmailOverride() && $debugOverride !== null) {
+            return $debugOverride === 'no_email'
+                ? null
+                : $this->normalizeEmail($debugOverride);
+        }
+
+        return $this->normalizeEmail($providerUser->getEmail());
+    }
+
+    private function startOnboardingWorkflow(
+        Request $request,
+        SocialAuthHandshakeWorkflow $handshake,
+        ExternalAuthProvider $provider,
+        SocialiteUser $providerUser,
+        string $providerUserId,
+        ?string $providerEmail,
+        bool $startBlocked = false,
+    ): RedirectResponse {
+        $workflow = new SocialRegistrationWorkflow();
+
+        $context = [
+            'provider' => $provider->value,
+            'provider_label' => $provider->label(),
+            'provider_user_id' => $providerUserId,
+            'effective_provider_email' => $providerEmail,
+            'avatar_url' => $this->resolveAvatarUrl($providerUser),
+            'display_name' => $this->resolveDisplayName($providerUser, $providerEmail, $provider),
+            'scopes' => $this->resolveApprovedScopes($providerUser),
+            'profile' => $this->resolveProfile($providerUser),
+            'access_token' => is_string($providerUser->token) && $providerUser->token !== '' ? Crypt::encryptString($providerUser->token) : null,
+            'refresh_token' => is_string($providerUser->refreshToken) && $providerUser->refreshToken !== '' ? Crypt::encryptString($providerUser->refreshToken) : null,
+            'expires_in' => $providerUser->expiresIn !== null ? (int) $providerUser->expiresIn : null,
+            'legal_acceptance' => $this->resolveLegalAcceptance($handshake),
+            'debug_override' => $this->resolveDebugOverride($handshake),
+        ];
+
+        if ($startBlocked && $providerEmail !== null) {
+            $context['attempted_email'] = $providerEmail;
+            $workflow->apply('show_existing_account_handoff', $context);
+        } else {
+            $workflow->apply('start_email_collection', $context);
+        }
+
+        $handshake->apply('handoff_registration', [
+            'provider_user_id' => $providerUserId,
+            'effective_provider_email' => $providerEmail,
+            'blocked' => $startBlocked,
+        ]);
+        $handshake->close()->saveStore();
+        $this->clearWorkflowSession($request, SocialAuthHandshakeWorkflow::class);
+
+        $workflow->saveStore(useSession: true);
+
+        return redirect()->route('register.social-email');
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private function resolveLegalAcceptance(SocialAuthHandshakeWorkflow $handshake): ?array
+    {
+        $legalAcceptance = $handshake->getInitialContextValue('legal_acceptance');
+
+        return is_array($legalAcceptance) ? $legalAcceptance : null;
+    }
+
+    private function resolveDebugOverride(SocialAuthHandshakeWorkflow $handshake): ?string
+    {
+        $debugOverride = $handshake->getInitialContextValue('debug_override');
+
+        return is_string($debugOverride) && $debugOverride !== ''
+            ? $debugOverride
+            : null;
+    }
+
+    private function clearWorkflowSession(Request $request, string $workflowClass): void
+    {
+        $request->session()->forget('workflow_store_id.'.$workflowClass);
     }
 
     private function login(Request $request, User $user): void
     {
         Auth::login($user);
-        $request->session()->regenerate();
+
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
     }
 }

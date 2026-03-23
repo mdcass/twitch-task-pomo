@@ -68,7 +68,7 @@ class UserFactory extends Factory
 
     protected function withTeam(TeamType $type): static
     {
-        return $this->afterCreating(function (User $user) use ($type) {
+        return $this->afterCreating(function (User $user) use ($type): void {
             $team = Team::factory()
                 ->for($user, 'owner')
                 ->state([

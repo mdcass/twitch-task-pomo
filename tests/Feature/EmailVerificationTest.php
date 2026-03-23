@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\Auth\VerifyEmail;
+use App\Support\Branding\ProductBrand;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
@@ -68,5 +71,34 @@ class EmailVerificationTest extends TestCase
         $this->actingAs($user)->get($verificationUrl);
 
         $this->assertFalse($user->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_unverified_users_can_request_a_fresh_verification_email(): void
+    {
+        if (! Features::enabled(Features::emailVerification())) {
+            $this->markTestSkipped('Email verification not enabled.');
+        }
+
+        Notification::fake();
+
+        $user = User::factory()->withStreamerTeam()->unverified()->create();
+
+        $response = $this->actingAs($user)->post(route('verification.send'));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('status', 'verification-link-sent');
+        Notification::assertSentTo($user, VerifyEmail::class, function (VerifyEmail $notification) use ($user) {
+            $message = $notification->toMail($user);
+            $html = $message->render()->toHtml();
+
+            $this->assertSame('Confirm your email to finish setting up your account', $message->subject);
+            $this->assertStringContainsString('Welcome to '.ProductBrand::productName().'!', $html);
+            $this->assertStringContainsString(ProductBrand::productTagline(), $html);
+            $this->assertStringContainsString('Confirm Email Address', $html);
+            $this->assertStringContainsString('finish setting up your account', $html);
+            $this->assertStringNotContainsString('notification-logo-v2.1.png', $html);
+
+            return true;
+        });
     }
 }

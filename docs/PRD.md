@@ -687,8 +687,8 @@ Create the account, team-context, and onboarding foundation for streamer-oriente
 
 - `BP-TASK-P1-08` DONE Implement `teams` and `team_user` persistence with enum-backed team types and membership roles.
 - `BP-TASK-P1-09` DONE Implement `provider_auths` and `user_settings` persistence for external identity links and legal acceptance history.
-- `BP-TASK-P1-10` Add Twitch and Discord Socialite redirect and callback flows on `/auth/{provider}/redirect` and `/auth/{provider}/callback`.
-- `BP-TASK-P1-11` Build persisted onboarding workflows for local signup where a provider returns no email address; UI using the structure of the registration page should collect the email address from the user at this point. Will need branching logic if the email address already exists as a user, implemented as a Livewire component.
+- `BP-TASK-P1-10` DONE Add Twitch and Discord Socialite redirect and callback flows on `/auth/{provider}/redirect` and `/auth/{provider}/callback`.
+- `BP-TASK-P1-11` DONE Build persisted onboarding workflows for local signup where a provider returns no email address; UI using the structure of the registration page should collect the email address from the user at this point. Will need branching logic if the email address already exists as a user, implemented as a Livewire component.
 - `BP-TASK-P1-12` Implement secure no-auto-link and account-claim behavior for provider callbacks that match existing local emails.
 - `BP-TASK-P1-13` Add feature tests for local auth, first-time social signup, and viewer versus streamer profile creation. Add Pest based browser tests for all aswell.
 - `BP-TASK-P1-14` Add Spatie activity logging to authentication surface

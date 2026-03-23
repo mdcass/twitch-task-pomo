@@ -3,7 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\Auth\ResetPassword;
+use App\Support\Branding\ProductBrand;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Features;
@@ -38,7 +39,19 @@ class PasswordResetTest extends TestCase
             'email' => $user->email,
         ]);
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user) {
+            $message = $notification->toMail($user);
+            $html = $message->render()->toHtml();
+
+            $this->assertSame('Use this secure link to choose a new password', $message->subject);
+            $this->assertStringContainsString(ProductBrand::productName(), $html);
+            $this->assertStringContainsString(ProductBrand::productTagline(), $html);
+            $this->assertStringContainsString('Choose a New Password', $html);
+            $this->assertStringContainsString('reset the password for your '.ProductBrand::productName().' account', $html);
+            $this->assertStringNotContainsString('notification-logo-v2.1.png', $html);
+
+            return true;
+        });
     }
 
     public function test_reset_password_screen_can_be_rendered(): void

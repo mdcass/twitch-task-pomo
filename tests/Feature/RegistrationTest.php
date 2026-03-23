@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\TeamType;
+use App\Notifications\Auth\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
 
@@ -51,6 +53,8 @@ class RegistrationTest extends TestCase
             $this->markTestSkipped('Registration support is not enabled.');
         }
 
+        Notification::fake();
+
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
@@ -68,5 +72,7 @@ class RegistrationTest extends TestCase
         $this->assertSame(TeamType::Streamer, $user->ownedTeams->first()->type);
         $this->assertTrue($user->currentTeam->is($user->ownedTeams->first()));
         $this->assertSame('Test\'s Streamer Profile', $user->currentTeam->name);
+        $this->assertNull($user->email_verified_at);
+        Notification::assertSentToTimes($user, VerifyEmail::class, 1);
     }
 }

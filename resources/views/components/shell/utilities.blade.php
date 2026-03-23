@@ -47,30 +47,25 @@
             aria-expanded="false"
             style="min-width: 2.25rem"
         >
-            <div class="avatar avatar-l">
-                @if ($utility['profile_photo_url'])
-                    <img class="rounded-circle" src="{{ $utility['profile_photo_url'] }}" alt="{{ $utility['name'] }}">
-                @else
-                    <div class="avatar-name rounded-circle">
-                        <span>{{ $utility['initials'] }}</span>
-                    </div>
-                @endif
-            </div>
+            <x-shell.user-avatar
+                :name="$utility['name']"
+                :initials="$utility['initials']"
+                :url="$utility['profile_photo_url'] ?? $utility['provider_avatar_url']"
+                size="l"
+            />
         </a>
 
         <div class="dropdown-menu dropdown-menu-end navbar-dropdown-caret py-0 dropdown-profile shadow border" aria-labelledby="navbarDropdownUser">
             <div class="card position-relative border-0">
                 <div class="card-body p-0">
                     <div class="text-center pt-4 pb-3">
-                        <div class="avatar avatar-xl">
-                            @if ($utility['profile_photo_url'])
-                                <img class="rounded-circle" src="{{ $utility['profile_photo_url'] }}" alt="{{ $utility['name'] }}">
-                            @else
-                                <div class="avatar-name rounded-circle">
-                                    <span>{{ $utility['initials'] }}</span>
-                                </div>
-                            @endif
-                        </div>
+                        <x-shell.user-avatar
+                            :name="$utility['name']"
+                            :initials="$utility['initials']"
+                            :url="$utility['profile_photo_url'] ?? $utility['provider_avatar_url']"
+                            size="xl"
+                            class="mx-auto"
+                        />
                         <h6 class="mt-2 text-body-emphasis">{{ $utility['name'] }}</h6>
                         @if ($utility['current_team_name'])
                             <p class="text-body-tertiary fs-9 mb-0">{{ $utility['current_team_name'] }}</p>

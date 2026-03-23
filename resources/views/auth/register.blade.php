@@ -31,6 +31,8 @@
             <p class="text-body-tertiary">Create your account today.</p>
         </div>
 
+        <x-validation-errors class="mb-4" />
+
         <form method="GET" action="{{ route('oauth.redirect', ['provider' => 'twitch']) }}">
             <input type="hidden" name="flow" value="register" />
 
@@ -73,8 +75,6 @@
             <hr class="bg-body-secondary" />
             <div class="divider-content-center bg-body-emphasis">{{ __('or continue with email') }}</div>
         </div>
-
-        <x-validation-errors class="mb-4" />
 
         <form method="POST" action="{{ route('register') }}" class="mt-4">
             @csrf

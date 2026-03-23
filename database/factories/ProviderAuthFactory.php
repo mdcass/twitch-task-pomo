@@ -24,6 +24,7 @@ class ProviderAuthFactory extends Factory
             'provider' => ExternalAuthProvider::Twitch,
             'provider_user_id' => fake()->unique()->numerify('provider-#######'),
             'provider_email' => fake()->optional()->safeEmail(),
+            'avatar_url' => 'https://cdn.example.test/avatars/'.fake()->uuid().'.png',
             'access_token' => fake()->optional()->sha256(),
             'refresh_token' => fake()->optional()->sha256(),
             'token_expires_at' => now()->addHour(),

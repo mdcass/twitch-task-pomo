@@ -25,6 +25,7 @@ class ProviderAuth extends Model
         'provider',
         'provider_user_id',
         'provider_email',
+        'avatar_url',
         'access_token',
         'refresh_token',
         'token_expires_at',

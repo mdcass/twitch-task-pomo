@@ -23,6 +23,7 @@ class AuthPersistenceTest extends TestCase
             'provider' => ExternalAuthProvider::Twitch,
             'provider_user_id' => '27463794',
             'provider_email' => 'streamer@example.test',
+            'avatar_url' => 'https://cdn.example.test/avatars/streamer.png',
             'access_token' => 'access-token-secret',
             'refresh_token' => 'refresh-token-secret',
             'token_expires_at' => now()->addHour(),
@@ -40,6 +41,7 @@ class AuthPersistenceTest extends TestCase
         $this->assertSame(ExternalAuthProvider::Twitch, $freshProviderAuth?->provider);
         $this->assertSame('27463794', $freshProviderAuth?->provider_user_id);
         $this->assertSame('streamer@example.test', $freshProviderAuth?->provider_email);
+        $this->assertSame('https://cdn.example.test/avatars/streamer.png', $freshProviderAuth?->avatar_url);
         $this->assertSame('access-token-secret', $freshProviderAuth?->access_token);
         $this->assertSame('refresh-token-secret', $freshProviderAuth?->refresh_token);
         $this->assertSame(['user:read:email'], $freshProviderAuth?->scopes);
@@ -50,6 +52,7 @@ class AuthPersistenceTest extends TestCase
         $this->assertNotNull($freshProviderAuth?->token_expires_at);
         $this->assertNotNull($freshProviderAuth?->last_used_at);
         $this->assertFalse($freshProviderAuth?->isRevoked());
+        $this->assertSame('https://cdn.example.test/avatars/streamer.png', $rawProviderAuth->avatar_url);
         $this->assertNotSame('access-token-secret', $rawProviderAuth->access_token);
         $this->assertNotSame('refresh-token-secret', $rawProviderAuth->refresh_token);
     }

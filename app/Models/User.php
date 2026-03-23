@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\Models\WorkflowStatus;
 use App\Enums\TeamMemberRole;
+use App\Models\Concerns\HasNotifications;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,13 +21,14 @@ use Laravel\Jetstream\OwnerRole;
 use Laravel\Jetstream\Role;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens;
 
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 
+    use HasNotifications;
     use HasProfilePhoto;
     use HasTeams;
     use Notifiable;
@@ -103,7 +106,7 @@ class User extends Authenticatable
     public function teamRole($team): ?Role
     {
         if ($this->ownsTeam($team)) {
-            return new OwnerRole;
+            return new OwnerRole();
         }
 
         if (! $this->belongsToTeam($team)) {
@@ -165,5 +168,40 @@ class User extends Authenticatable
     public function userSettings(): HasMany
     {
         return $this->hasMany(UserSetting::class);
+    }
+
+    public function workflowStoreFor(string $workflowClass): ?WorkflowStore
+    {
+        $team = $this->currentTeam;
+
+        if ($team === null) {
+            return null;
+        }
+
+        return $team->workflowStores()
+            ->where('workflow_class', $workflowClass)
+            ->where('subject_type', self::class)
+            ->where('subject_id', $this->id)
+            ->latest('id')
+            ->first();
+    }
+
+    public function hasCompletedWorkflow(string $workflowClass, ?string $completionState = null): bool
+    {
+        $store = $this->workflowStoreFor($workflowClass);
+
+        if ($store === null) {
+            return false;
+        }
+
+        if ($store->status === WorkflowStatus::CLOSED) {
+            return true;
+        }
+
+        if (! is_string($completionState) || $completionState === '') {
+            return false;
+        }
+
+        return $store->workflow()->isState($completionState);
     }
 }

@@ -36,7 +36,8 @@ The codebase is still in early foundation work. Current implementation and immed
 
 - [`docs/PRD.md`](docs/PRD.md): product requirements and phase scope
 - [`docs/RUNBOOK.md`](docs/RUNBOOK.md): current project state at `HEAD`
-- [`docs/agents/theme.md`](docs/agents/theme.md): durable Phoenix theme adoption guidance and upstream-to-local mapping
+- [`docs/agents/overview.md`](docs/agents/overview.md): agent-facing project guide and documentation index
+- [`docs/agents/theme.md`](docs/agents/theme.md): Phoenix integration boundaries and upstream reference usage
 - [`docs/backlog/`](docs/backlog): numbered implementation deep dives
 
 ## Phoenix Theme Reference
@@ -48,7 +49,7 @@ The purchased Phoenix package is committed as a read-only reference snapshot at 
 - In PhpStorm or IntelliJ, mark `resources/third-party/themes/phoenix-v1.24.0` as `Excluded` so indexing, symbol search, code completion, and global find-in-files do not prefer upstream theme files over product code. If needed: right-click the directory, then `Mark Directory As` -> `Excluded`.
 - If you still want easy browsing in JetBrains IDEs, keep the directory excluded and open specific upstream files from the Project view when needed instead of re-enabling full indexing.
 - When searching for implementation files, prefer scopes that exclude `resources/third-party/` so results stay focused on app-owned code.
-- Review `docs/agents/theme.md` before changing the Phoenix integration. It records what was adopted, what remains deferred, and why.
+- Review `docs/agents/theme.md` before changing the Phoenix integration. It defines the runtime ownership boundary and how to use the upstream snapshot safely.
 
 ## Working Notes
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\TeamType;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Jetstream\Events\TeamCreated;
 use Laravel\Jetstream\Events\TeamDeleted;
@@ -50,5 +51,15 @@ class Team extends JetstreamTeam
             'deleted_at' => 'datetime',
             'type' => TeamType::class,
         ];
+    }
+
+    /**
+     * Get the workflow stores owned by the team.
+     *
+     * @return HasMany<WorkflowStore, $this>
+     */
+    public function workflowStores(): HasMany
+    {
+        return $this->hasMany(WorkflowStore::class);
     }
 }

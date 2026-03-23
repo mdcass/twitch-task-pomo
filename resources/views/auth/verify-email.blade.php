@@ -1,48 +1,34 @@
-<x-guest-layout variant="card">
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
-        </x-slot>
+<x-guest-layout variant="simple">
+    <x-auth.simple-brand mark-only class="mb-4" mark-class="p-1" />
 
-        <div class="text-center text-lg-start mb-4">
-            <h1 class="h3 mb-2">{{ __('Verify your email address') }}</h1>
-            <p class="text-body-secondary mb-0">{{ __('One more step before you continue into the dashboard shell.') }}</p>
+    <div class="text-center mb-4">
+        <h1 class="h3 mb-2">{{ __('Verify your email address') }}</h1>
+        <p class="mb-0">{{ __('Please click on the link sent to your email address. If you didn\'t receive the email, we will gladly send you another.') }}</p>
+    </div>
+
+    @if (session('status') == 'verification-link-sent')
+        <div class="alert alert-outline-success mb-4">
+            {{ __('A new verification link has been sent to the email address you provided in your profile settings.') }}
         </div>
+    @endif
 
-        <div class="alert alert-info mb-4">
-            {{ __('Before continuing, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-        </div>
+    <div class="d-flex flex-column gap-3">
+        <form method="POST" action="{{ route('verification.send') }}">
+            @csrf
 
-        @if (session('status') == 'verification-link-sent')
-            <div class="alert alert-success mb-4">
-                {{ __('A new verification link has been sent to the email address you provided in your profile settings.') }}
+            <div class="d-grid">
+                <x-button type="submit">{{ __('Resend Verification Email') }}</x-button>
             </div>
-        @endif
+        </form>
 
-        <div class="d-flex flex-column gap-3">
-            <form method="POST" action="{{ route('verification.send') }}">
+        <div class="d-flex align-items-center justify-content-end flex-wrap gap-3 small">
+            <form method="POST" action="{{ route('logout') }}" class="inline">
                 @csrf
 
-                <div class="d-grid">
-                    <x-button type="submit">{{ __('Resend Verification Email') }}</x-button>
-                </div>
+                <button type="submit" class="btn btn-link p-0 text-decoration-none">
+                    {{ __('Log Out') }}
+                </button>
             </form>
-
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 small">
-                <a
-                    href="{{ route('profile.show') }}"
-                    class="fw-semibold text-decoration-none"
-                >
-                    {{ __('Edit Profile') }}</a>
-
-                <form method="POST" action="{{ route('logout') }}" class="inline">
-                    @csrf
-
-                    <button type="submit" class="btn btn-link p-0 text-decoration-none fw-semibold">
-                        {{ __('Log Out') }}
-                    </button>
-                </form>
-            </div>
         </div>
-    </x-authentication-card>
+    </div>
 </x-guest-layout>

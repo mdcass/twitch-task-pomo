@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ExternalAuthProvider;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
@@ -17,8 +18,7 @@ class AppShellLayoutTest extends TestCase
     {
         parent::setUp();
 
-        Route::middleware('web')->get('/_test/shell/{layout}', function (string $layout) {
-            return Blade::render(<<<'BLADE'
+        Route::middleware('web')->get('/_test/shell/{layout}', fn (string $layout) => Blade::render(<<<'BLADE'
                 <x-app-layout :layout="$layout">
                     <x-slot name="header">
                         <div>
@@ -28,8 +28,7 @@ class AppShellLayoutTest extends TestCase
 
                     <p>Preview content</p>
                 </x-app-layout>
-                BLADE, ['layout' => $layout]);
-        });
+                BLADE, ['layout' => $layout]));
     }
 
     public function test_existing_authenticated_pages_use_the_vertical_layout_by_default(): void
@@ -131,6 +130,98 @@ class AppShellLayoutTest extends TestCase
             ->assertSee('data-theme-control="phoenixTheme"', false)
             ->assertDontSee('navbar-top-search-box', false)
             ->assertDontSee('navbarDropdownNotification', false);
+    }
+
+    public function test_shell_uses_provider_avatar_when_profile_photo_is_unavailable(): void
+    {
+        $user = $this->verifiedUserWithCurrentTeam();
+        $user->providerAuths()->create([
+            'provider' => ExternalAuthProvider::Twitch,
+            'provider_user_id' => 'twitch-provider-1',
+            'avatar_url' => 'https://cdn.example.test/avatars/provider-fallback.png',
+            'last_used_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/_test/shell/vertical')
+            ->assertOk()
+            ->assertSee('src="https://cdn.example.test/avatars/provider-fallback.png"', false)
+            ->assertSee("onerror=\"this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');\"", false);
+    }
+
+    public function test_shell_prefers_profile_photo_over_provider_avatar(): void
+    {
+        config()->set('jetstream.features', [
+            Features::profilePhotos(),
+            Features::accountDeletion(),
+        ]);
+
+        $user = $this->verifiedUserWithCurrentTeam()->forceFill([
+            'profile_photo_path' => 'profile-photos/preferred-avatar.jpg',
+        ]);
+        $user->save();
+        $user->providerAuths()->create([
+            'provider' => ExternalAuthProvider::Discord,
+            'provider_user_id' => 'discord-provider-1',
+            'avatar_url' => 'https://cdn.example.test/avatars/provider-fallback.png',
+            'last_used_at' => now(),
+        ]);
+
+        $this->actingAs($user->fresh())
+            ->get('/_test/shell/vertical')
+            ->assertOk()
+            ->assertSee('preferred-avatar.jpg', false)
+            ->assertDontSee('src="https://cdn.example.test/avatars/provider-fallback.png"', false);
+    }
+
+    public function test_shell_uses_most_recent_provider_avatar_when_multiple_are_available(): void
+    {
+        $user = $this->verifiedUserWithCurrentTeam();
+        $user->providerAuths()->create([
+            'provider' => ExternalAuthProvider::Twitch,
+            'provider_user_id' => 'older-provider',
+            'avatar_url' => 'https://cdn.example.test/avatars/older-provider.png',
+            'last_used_at' => now()->subHour(),
+        ]);
+        $user->providerAuths()->create([
+            'provider' => ExternalAuthProvider::Discord,
+            'provider_user_id' => 'newer-provider',
+            'avatar_url' => 'https://cdn.example.test/avatars/newer-provider.png',
+            'last_used_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/_test/shell/vertical')
+            ->assertOk()
+            ->assertSee('src="https://cdn.example.test/avatars/newer-provider.png"', false)
+            ->assertDontSee('src="https://cdn.example.test/avatars/older-provider.png"', false);
+    }
+
+    public function test_shell_ignores_revoked_and_null_avatar_provider_auths(): void
+    {
+        $user = User::factory()->withStreamerTeam()->create([
+            'name' => 'Taylor Streamer',
+        ])->fresh();
+
+        $user->providerAuths()->create([
+            'provider' => ExternalAuthProvider::Twitch,
+            'provider_user_id' => 'null-avatar-provider',
+            'avatar_url' => null,
+            'last_used_at' => now()->subMinutes(10),
+        ]);
+        $revoked = $user->providerAuths()->create([
+            'provider' => ExternalAuthProvider::Discord,
+            'provider_user_id' => 'revoked-provider',
+            'avatar_url' => 'https://cdn.example.test/avatars/revoked-provider.png',
+            'last_used_at' => now(),
+        ]);
+        $revoked->delete();
+
+        $this->actingAs($user)
+            ->get('/_test/shell/vertical')
+            ->assertOk()
+            ->assertDontSee('src="https://cdn.example.test/avatars/revoked-provider.png"', false)
+            ->assertSee('<span>TS</span>', false);
     }
 
     protected function verifiedUserWithCurrentTeam(): User

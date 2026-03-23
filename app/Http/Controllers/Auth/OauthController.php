@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 use Laravel\Jetstream\Jetstream;
 
@@ -24,18 +25,27 @@ class OauthController extends Controller
             'flow' => ['required', new Enum(OauthFlow::class)],
         ]);
 
-        $validator->sometimes('terms', ['accepted', 'required'], function ($input): bool {
-            return Jetstream::hasTermsAndPrivacyPolicyFeature()
-                && ($input->flow ?? null) === OauthFlow::Register->value;
-        });
+        $validator->sometimes('terms', ['accepted', 'required'], fn ($input): bool => Jetstream::hasTermsAndPrivacyPolicyFeature()
+                && $input->flow === OauthFlow::Register->value);
 
         $validator->setCustomMessages([
             'terms.accepted' => 'You must accept the Terms of Service and Privacy Policy before signing up with '.$provider->label().'.',
         ]);
 
+        $validator->sometimes('debug', [
+            'string',
+            Rule::anyOf([
+                Rule::in(['no_email']),
+                'email',
+            ]),
+        ], fn () => $this->socialAuth->shouldUseDebugEmailOverride());
+
         $validated = $validator->validate();
         $flow = OauthFlow::from($validated['flow']);
         $legalAcceptance = null;
+        $debugOverride = $this->socialAuth->shouldUseDebugEmailOverride()
+            ? ($validated['debug'] ?? null)
+            : null;
 
         if ($flow === OauthFlow::Register && Jetstream::hasTermsAndPrivacyPolicyFeature()) {
             $acceptedAt = now()->toIso8601String();
@@ -46,7 +56,7 @@ class OauthController extends Controller
             ];
         }
 
-        return $this->socialAuth->redirect($request, $provider, $flow, $legalAcceptance);
+        return $this->socialAuth->redirect($request, $provider, $flow, $legalAcceptance, $debugOverride);
     }
 
     public function callback(Request $request, ExternalAuthProvider $provider): RedirectResponse

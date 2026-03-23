@@ -173,6 +173,8 @@ class AppShellNavigation
             ];
         }
 
+        $profilePhotoUrl = Jetstream::managesProfilePhotos() ? $user->profile_photo_url : null;
+
         return [
             'name' => $user->name,
             'initials' => Str::of($user->name)
@@ -182,12 +184,22 @@ class AppShellNavigation
                 ->map(fn (string $segment) => Str::upper(Str::substr($segment, 0, 1)))
                 ->implode(''),
             'current_team_name' => $user->currentTeam?->name,
-            'profile_photo_url' => Jetstream::managesProfilePhotos() ? $user->profile_photo_url : null,
+            'profile_photo_url' => $profilePhotoUrl,
+            'provider_avatar_url' => $profilePhotoUrl === null ? $this->resolveProviderAvatarUrl($user) : null,
             'actions' => $actions,
             'team_actions' => [],
             'switchable_teams' => collect(),
             'logout_url' => route('logout', absolute: false),
         ];
+    }
+
+    protected function resolveProviderAvatarUrl(User $user): ?string
+    {
+        return $user->providerAuths()
+            ->whereNotNull('avatar_url')
+            ->orderByDesc('last_used_at')
+            ->orderByDesc('id')
+            ->value('avatar_url');
     }
 
     /**
