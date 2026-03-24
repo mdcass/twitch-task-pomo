@@ -3,16 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Actions\LocalWidgets\SpotifyWidgetService;
-use Carbon\CarbonInterface;
+use App\Enums\Models\WidgetType;
+use App\Support\Widgets\BuiltInWidgetPageFactory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class LocalWidgetPreviewController extends Controller
 {
+    public function __construct(
+        private readonly BuiltInWidgetPageFactory $builtInWidgetPageFactory,
+    ) {}
+
     public function index(Request $request, SpotifyWidgetService $spotify): View
     {
         $now = now()->seconds(0);
@@ -59,13 +63,12 @@ class LocalWidgetPreviewController extends Controller
             'completed.*' => ['nullable', 'string', 'max:160'],
         ])->validate();
 
-        $pendingItems = $this->normalizeTaskItems($validated['pending'] ?? []);
-        $completedItems = $this->normalizeTaskItems($validated['completed'] ?? []);
-
         return view('local.widgets.task-list', [
-            'title' => $validated['title'] ?? 'Task List',
-            'pendingItems' => $pendingItems,
-            'completedItems' => $completedItems,
+            ...$this->builtInWidgetPageFactory->dataForType(WidgetType::TaskList, [
+                'title' => $validated['title'] ?? 'Task List',
+                'pending' => $validated['pending'] ?? [],
+                'completed' => $validated['completed'] ?? [],
+            ]),
         ]);
     }
 
@@ -95,99 +98,15 @@ class LocalWidgetPreviewController extends Controller
          */
         $validated = $validator->validated();
 
-        $title = $validated['title'] ?? 'Pomodoro';
-        $state = $validated['state'];
-        $focusMinutes = (int) ($validated['focus_minutes'] ?? 25);
-        $breakMinutes = (int) ($validated['break_minutes'] ?? 5);
-
-        $endsAt = null;
-        $countdownTarget = null;
-        $remainingSeconds = 0;
-
-        if ($state === 'paused') {
-            $remainingSeconds = (int) $validated['remaining_seconds'];
-        } else {
-            $endsAt = Carbon::parse($validated['ends_at']);
-            $countdownTarget = $endsAt->toIso8601String();
-            $remainingSeconds = max(0, now()->diffInSeconds($endsAt, false));
-        }
-
         return view('local.widgets.pomodoro', [
-            'title' => $title,
-            'state' => $state,
-            'focusMinutes' => $focusMinutes,
-            'breakMinutes' => $breakMinutes,
-            'endsAt' => $endsAt,
-            'countdownTarget' => $countdownTarget,
-            'remainingSeconds' => $remainingSeconds,
-            'countdownDisplay' => $this->formatDuration($remainingSeconds),
-            'stateLabel' => $this->stateLabel($state),
-            'stateSummary' => $this->stateSummary($state, $focusMinutes, $breakMinutes, $endsAt, $remainingSeconds),
-            'stateBadgeClass' => $this->stateBadgeClass($state),
+            ...$this->builtInWidgetPageFactory->dataForType(WidgetType::Pomodoro, [
+                'title' => $validated['title'] ?? 'Pomodoro',
+                'state' => $validated['state'],
+                'focus_minutes' => (int) ($validated['focus_minutes'] ?? 25),
+                'break_minutes' => (int) ($validated['break_minutes'] ?? 5),
+                'ends_at' => $validated['state'] === 'paused' ? null : Carbon::parse($validated['ends_at'])->toIso8601String(),
+                'remaining_seconds' => $validated['state'] === 'paused' ? (int) $validated['remaining_seconds'] : null,
+            ]),
         ]);
-    }
-
-    /**
-     * @param  array<int, mixed>  $items
-     * @return array<int, string>
-     */
-    private function normalizeTaskItems(array $items): array
-    {
-        return Collection::make($items)
-            ->map(static fn (mixed $item): string => trim((string) $item))
-            ->filter()
-            ->values()
-            ->all();
-    }
-
-    private function formatDuration(int $remainingSeconds): string
-    {
-        $minutes = intdiv(max($remainingSeconds, 0), 60);
-        $seconds = max($remainingSeconds, 0) % 60;
-
-        return str_pad((string) $minutes, 2, '0', STR_PAD_LEFT).':'.str_pad((string) $seconds, 2, '0', STR_PAD_LEFT);
-    }
-
-    private function stateLabel(string $state): string
-    {
-        return match ($state) {
-            'focus' => 'Focus Session',
-            'break' => 'Break Window',
-            'paused' => 'Paused Timer',
-        };
-    }
-
-    private function stateBadgeClass(string $state): string
-    {
-        return match ($state) {
-            'focus' => 'bg-primary-subtle text-primary-emphasis',
-            'break' => 'bg-success-subtle text-success-emphasis',
-            'paused' => 'bg-warning-subtle text-warning-emphasis',
-        };
-    }
-
-    private function stateSummary(
-        string $state,
-        int $focusMinutes,
-        int $breakMinutes,
-        ?CarbonInterface $endsAt,
-        int $remainingSeconds,
-    ): string {
-        return match ($state) {
-            'focus' => sprintf(
-                '%d minute focus block ending at %s.',
-                $focusMinutes,
-                $endsAt?->format('H:i') ?? '--:--',
-            ),
-            'break' => sprintf(
-                '%d minute break block ending at %s.',
-                $breakMinutes,
-                $endsAt?->format('H:i') ?? '--:--',
-            ),
-            'paused' => sprintf(
-                'Timer paused with %s remaining.',
-                $this->formatDuration($remainingSeconds),
-            ),
-        };
     }
 }

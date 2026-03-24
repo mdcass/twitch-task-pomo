@@ -1,5 +1,5 @@
-<x-modal wire:model.live="open" :id="$elementId" :max-width="$maxWidth" :dismissible="$dismissible" :initial-focus="$initialFocus"
-    :initial-focus-method="$initialFocusMethod" x-on:overlay-modal-load.window="$wire.loaded($event.detail ?? {})"
+<x-modal wire:model.live="open" :id="$elementId" :max-width="$maxWidth" :dismissible="$dismissible" :initial-focus="$initialFocus" :initial-focus-method="$initialFocusMethod"
+    x-on:overlay-modal-load.window="$wire.loaded($event.detail ?? {})"
     x-on:overlay-modal-open.window="$wire.openFromEvent($event.detail ?? {})"
     x-on:overlay-modal-close.window="$wire.closeFromEvent($event.detail ?? {})">
     @if ($title)

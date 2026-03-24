@@ -34,12 +34,14 @@
         dismissible: @js($dismissible),
         initialFocus: @js($initialFocus),
         initialFocusMethod: @js($initialFocusMethod),
-    })"
-    x-init="init()" x-on:close.stop="close()" x-cloak wire:ignore.self tabindex="-1"
-    data-bs-backdrop="{{ $dismissible ? 'true' : 'static' }}"
-    data-bs-keyboard="{{ $dismissible ? 'true' : 'false' }}"
-    @if ($hasHeader) aria-labelledby="{{ $titleId }}" @endif
-    @if ($hasBody) aria-describedby="{{ $bodyId }}" @endif
+    })" x-init="init()" x-on:close.stop="close()" x-cloak wire:ignore.self tabindex="-1"
+    data-bs-backdrop="{{ $dismissible ? 'true' : 'static' }}" data-bs-keyboard="{{ $dismissible ? 'true' : 'false' }}"
+    @if ($hasHeader)
+    aria-labelledby="{{ $titleId }}"
+    @endif
+    @if ($hasBody)
+        aria-describedby="{{ $bodyId }}"
+    @endif
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered {{ $maxWidth }}">
         <div class="modal-content border border-translucent shadow-lg" x-ref="dialog">

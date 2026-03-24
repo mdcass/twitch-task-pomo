@@ -127,6 +127,27 @@ class CanvasCrudTest extends TestCase
         $this->assertSame('submit', $activity->getExtraProperty('livewire_method'));
     }
 
+    public function test_canvas_form_accepts_small_positive_dimensions(): void
+    {
+        $user = User::factory()->withStreamerTeam()->create();
+
+        Livewire::actingAs($user)
+            ->test(CanvasForm::class, [
+                'mode' => 'create',
+                'offcanvasId' => 'canvas-create-offcanvas',
+            ])
+            ->set('fields.name', 'Mobile Scene')
+            ->set('fields.width', 80)
+            ->set('fields.height', 60)
+            ->call('submit')
+            ->assertRedirect();
+
+        $canvas = Canvas::query()->where('name', 'Mobile Scene')->firstOrFail();
+
+        $this->assertSame(80, $canvas->width);
+        $this->assertSame(60, $canvas->height);
+    }
+
     public function test_canvas_form_shows_a_validation_error_when_name_is_blank(): void
     {
         $user = User::factory()->withStreamerTeam()->create();
@@ -201,6 +222,69 @@ class CanvasCrudTest extends TestCase
         $this->assertTrue($activity->causer->is($user));
         $this->assertSame('canvases.canvas-form', $activity->getExtraProperty('livewire_component'));
         $this->assertSame('submit', $activity->getExtraProperty('livewire_method'));
+    }
+
+    public function test_canvas_update_action_uniformly_rescales_widget_geometry_and_editor_defaults(): void
+    {
+        $user = User::factory()->withStreamerTeam()->create();
+        $canvas = Canvas::factory()->for($user->currentTeam)->create([
+            'width' => 1920,
+            'height' => 1080,
+        ]);
+        $widget = $canvas->widgetInstances()->create([
+            'team_id' => $user->currentTeam->id,
+            'source_kind' => \App\Enums\Models\WidgetSourceKind::BuiltIn,
+            'type' => \App\Enums\Models\WidgetType::TaskList,
+            'name' => 'Scaled Widget',
+            'position_x' => 960,
+            'position_y' => 80,
+            'width' => 720,
+            'height' => 560,
+            'content_width' => 900,
+            'content_height' => 700,
+            'crop_top' => 24,
+            'crop_right' => 40,
+            'crop_bottom' => 48,
+            'crop_left' => 32,
+            'z_index' => 0,
+            'is_visible' => true,
+            'settings' => [
+                'editor_defaults' => [
+                    'frame_width' => 720,
+                    'frame_height' => 560,
+                    'content_width' => 900,
+                    'content_height' => 700,
+                ],
+            ],
+            'preview_status' => \App\Enums\Models\WidgetPreviewStatus::Ready,
+            'preview_message' => null,
+            'preview_checked_at' => now(),
+        ]);
+
+        app(UpdateCanvas::class)->update($user, $canvas, [
+            'name' => $canvas->name,
+            'width' => 1080,
+            'height' => 1920,
+        ]);
+
+        $widget->refresh();
+
+        $this->assertSame(540, $widget->position_x);
+        $this->assertSame(45, $widget->position_y);
+        $this->assertSame(405, $widget->width);
+        $this->assertSame(315, $widget->height);
+        $this->assertSame(506, $widget->content_width);
+        $this->assertSame(394, $widget->content_height);
+        $this->assertSame(14, $widget->crop_top);
+        $this->assertSame(23, $widget->crop_right);
+        $this->assertSame(27, $widget->crop_bottom);
+        $this->assertSame(18, $widget->crop_left);
+        $this->assertSame([
+            'frame_width' => 405,
+            'frame_height' => 315,
+            'content_width' => 506,
+            'content_height' => 394,
+        ], $widget->settings['editor_defaults'] ?? null);
     }
 
     public function test_canvas_actions_authorize_direct_non_http_calls(): void

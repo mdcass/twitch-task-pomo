@@ -1,11 +1,4 @@
-@props([
-    'id',
-    'surface',
-    'action' => null,
-    'title' => null,
-    'data' => [],
-    'as' => 'button',
-])
+@props(['id', 'surface', 'action' => null, 'title' => null, 'data' => [], 'as' => 'button'])
 
 @php
     $tag = $as;
@@ -26,4 +19,4 @@
 <{{ $tag }} {{ $attributes->merge($defaultAttributes) }} x-data
     x-on:click="window.dispatchEvent(new CustomEvent(@js($event), { detail: @js($detail) }))">
     {{ $slot }}
-</{{ $tag }}>
+    </{{ $tag }}>

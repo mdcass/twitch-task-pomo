@@ -53,10 +53,12 @@ class LocalWidgetPreviewTest extends TestCase
         )
             ->assertOk()
             ->assertSee('Focus Queue')
+            ->assertSee('overlay-widget-card--task-list', false)
             ->assertSee('Plan stream outline')
             ->assertSee('Refine camera framing')
             ->assertSee('Warm up intro scene')
-            ->assertSee('2 pending / 1 completed')
+            ->assertSee('2 pending')
+            ->assertSee('1 done')
             ->assertDontSee('data-shell-layout=', false);
     }
 
@@ -70,6 +72,7 @@ class LocalWidgetPreviewTest extends TestCase
         $this->get("/local/widgets/pomodoro?title=Deep%20Work%20Sprint&state=focus&focus_minutes=25&break_minutes=5&ends_at={$encodedEndsAt}")
             ->assertOk()
             ->assertSee('Deep Work Sprint')
+            ->assertSee('overlay-widget-card--pomodoro', false)
             ->assertSee('Focus Session')
             ->assertSee('20:00')
             ->assertSee('data-countdown-target="'.$endsAt.'"', false)
