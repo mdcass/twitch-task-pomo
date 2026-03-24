@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\LocalWidgets\SpotifyWidgetService;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -12,9 +13,12 @@ use Illuminate\Validation\Rule;
 
 class LocalWidgetPreviewController extends Controller
 {
-    public function index(): View
+    public function index(Request $request, SpotifyWidgetService $spotify): View
     {
         $now = now()->seconds(0);
+        $user = $request->user();
+        $currentUserSpotifyAuth = $user !== null ? $spotify->currentUserConnection($user) : null;
+        $latestSpotifyAuth = $spotify->latestConnection();
 
         return view('local.widgets.index', [
             'defaultTaskPreviewUrl' => route('local.widgets.task-list', [
@@ -36,8 +40,12 @@ class LocalWidgetPreviewController extends Controller
                 'break_minutes' => 5,
                 'remaining_seconds' => 12 * 60,
             ], false),
+            'defaultSpotifyPreviewUrl' => route('local.widgets.spotify.show', absolute: false),
             'defaultFocusEndsAt' => $now->copy()->addMinutes(25)->format('Y-m-d\TH:i'),
             'defaultBreakEndsAt' => $now->copy()->addMinutes(5)->format('Y-m-d\TH:i'),
+            'spotifyConfigured' => $spotify->isConfigured(),
+            'currentUserSpotifyAuth' => $currentUserSpotifyAuth,
+            'latestSpotifyAuth' => $latestSpotifyAuth,
         ]);
     }
 

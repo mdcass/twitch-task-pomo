@@ -37,6 +37,14 @@ class TestingSocialiteProvider implements Provider
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
+    public function with(array $parameters): self
+    {
+        return $this;
+    }
+
     public function redirect(): RedirectResponse
     {
         return new RedirectResponse(route('testing.oauth.authorize', [

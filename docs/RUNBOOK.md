@@ -10,7 +10,8 @@ This runbook tracks the implementation state of the repository at `HEAD`.
 - Initial implementation should still follow the Phase 1 Foundation MVP before public Twitch bot or billing work expands the surface area.
 - The core Phase 1 overlay domain foundation now includes schema, model, enum, and factory coverage for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions`.
 - Canvas CRUD is now implemented under `/canvases` with team-scoped list and edit pages, owner-only metadata mutation, soft-delete archive and restore behavior, and a workspace placeholder that defers real composer interactions to a follow-on task.
-- Local-only widget preview tooling now exists at `/local/widgets`, `/local/widgets/task-list`, and `/local/widgets/pomodoro` in the `local` and `testing` environments. These routes are stateless external-widget simulators for future canvas embedding tests and do not depend on database state or the authenticated shell.
+- Local-only widget preview tooling now exists at `/local/widgets`, `/local/widgets/task-list`, `/local/widgets/pomodoro`, and `/local/widgets/spotify` in the `local` and `testing` environments. The launcher at `/local/widgets` now requires app authentication so a developer can connect or disconnect Spotify for testing, while the task, pomodoro, and Spotify widget routes stay outside the authenticated shell for OBS-style preview loading.
+- The Spotify local widget uses a separate local/testing-only Socialite connect flow, stores Spotify credentials in `provider_auths`, and renders through a Livewire polling widget at `/local/widgets/spotify`. The Spotify preview intentionally resolves the most recently linked Spotify auth record as a local/testing seam and is not part of the guest sign-in flow or the team-scoped composer model yet.
 
 ## Workflow-Backed Auth And Onboarding At `HEAD`
 

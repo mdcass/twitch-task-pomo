@@ -2,12 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Providers\LocalToolingServiceProvider;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class LocalWidgetPreviewTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function tearDown(): void
     {
         Carbon::setTestNow();
@@ -22,11 +26,21 @@ class LocalWidgetPreviewTest extends TestCase
         $this->assertFalse(LocalToolingServiceProvider::supportsEnvironment('production'));
     }
 
-    public function test_launcher_renders_without_the_authenticated_app_shell(): void
+    public function test_launcher_requires_authentication(): void
     {
         $this->get(route('local.widgets.index', absolute: false))
+            ->assertRedirect(route('login', absolute: false));
+    }
+
+    public function test_authenticated_launcher_renders_without_the_authenticated_app_shell(): void
+    {
+        $user = User::factory()->withStreamerTeam()->create();
+
+        $this->actingAs($user)
+            ->get(route('local.widgets.index', absolute: false))
             ->assertOk()
             ->assertSee('External Widget Preview Launcher')
+            ->assertSee('Manage the now-playing widget source')
             ->assertSee('Generate a task widget URL')
             ->assertSee('Generate a pomodoro widget URL')
             ->assertDontSee('data-shell-layout=', false);
@@ -83,9 +97,9 @@ class LocalWidgetPreviewTest extends TestCase
         $this->get('/local/widgets/pomodoro?title=Paused%20Timer&state=paused&focus_minutes=25&break_minutes=5&remaining_seconds=750')
             ->assertOk()
             ->assertSee('Paused Timer')
-            ->assertSee('Timer paused with 12:30 remaining.')
             ->assertSee('12:30')
-            ->assertSee('Frozen preview state')
+            ->assertSee('Focus 25 min')
+            ->assertSee('Break 5 min')
             ->assertDontSee('data-countdown-target=', false);
     }
 }

@@ -11,6 +11,7 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController as FortifyRegisteredUserController;
 use SocialiteProviders\Discord\Provider as DiscordProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Spotify\Provider as SpotifyProvider;
 use SocialiteProviders\Twitch\Provider as TwitchProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(function (SocialiteWasCalled $event): void {
             $event->extendSocialite('discord', DiscordProvider::class);
+            $event->extendSocialite('spotify', SpotifyProvider::class);
             $event->extendSocialite('twitch', TwitchProvider::class);
         });
     }

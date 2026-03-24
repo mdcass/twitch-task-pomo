@@ -21,6 +21,8 @@ class OauthController extends Controller
 
     public function redirect(Request $request, ExternalAuthProvider $provider): RedirectResponse
     {
+        abort_unless($provider->supportsGuestAuth(), 404);
+
         $validator = Validator::make($request->query(), [
             'flow' => ['required', new Enum(OauthFlow::class)],
         ]);
@@ -61,6 +63,8 @@ class OauthController extends Controller
 
     public function callback(Request $request, ExternalAuthProvider $provider): RedirectResponse
     {
+        abort_unless($provider->supportsGuestAuth(), 404);
+
         return $this->socialAuth->callback($request, $provider);
     }
 }

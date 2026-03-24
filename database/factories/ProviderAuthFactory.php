@@ -44,6 +44,18 @@ class ProviderAuthFactory extends Factory
         ]);
     }
 
+    public function spotify(): static
+    {
+        return $this->state(fn () => [
+            'provider' => ExternalAuthProvider::Spotify,
+            'provider_user_id' => fake()->unique()->numerify('spotify-#######'),
+            'scopes' => ['user-read-email', 'user-read-currently-playing'],
+            'profile' => [
+                'display_name' => fake()->words(2, true),
+            ],
+        ]);
+    }
+
     public function revoked(): static
     {
         return $this->state(fn () => [

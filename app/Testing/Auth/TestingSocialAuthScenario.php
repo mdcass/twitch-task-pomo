@@ -14,6 +14,7 @@ final class TestingSocialAuthScenario
     {
         return match ($provider) {
             ExternalAuthProvider::Discord => self::discordScenario($scenario),
+            ExternalAuthProvider::Spotify => self::spotifyScenario($scenario),
             ExternalAuthProvider::Twitch => self::twitchScenario($scenario),
         };
     }
@@ -124,6 +125,35 @@ final class TestingSocialAuthScenario
                 ],
             ],
             default => throw new InvalidArgumentException("Unknown testing OAuth scenario [{$scenario}] for Discord."),
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function spotifyScenario(string $scenario): array
+    {
+        return match ($scenario) {
+            'widget-link' => [
+                'id' => 'testing-spotify-linked-user',
+                'name' => 'Desk Mix',
+                'nickname' => null,
+                'email' => 'spotify-widget@example.test',
+                'avatar' => 'https://cdn.example.test/avatars/spotify-widget.png',
+                'token' => 'testing-spotify-access-token',
+                'refreshToken' => 'testing-spotify-refresh-token',
+                'expiresIn' => 3600,
+                'approvedScopes' => ['user-read-email', 'user-read-currently-playing'],
+                'raw' => [
+                    'id' => 'testing-spotify-linked-user',
+                    'display_name' => 'Desk Mix',
+                    'email' => 'spotify-widget@example.test',
+                    'images' => [
+                        ['url' => 'https://cdn.example.test/avatars/spotify-widget.png'],
+                    ],
+                ],
+            ],
+            default => throw new InvalidArgumentException("Unknown testing OAuth scenario [{$scenario}] for Spotify."),
         };
     }
 }

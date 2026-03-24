@@ -14,6 +14,7 @@
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6.4",
         "socialiteproviders/discord": "^4.2",
+        "socialiteproviders/spotify": "^4.1",
         "socialiteproviders/twitch": "^5.4",
         "spatie/laravel-activitylog": "^4.12"
     },
