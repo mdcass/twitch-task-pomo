@@ -2,6 +2,7 @@ import '../bootstrap';
 import focus from '@alpinejs/focus';
 import * as bootstrap from 'bootstrap';
 import SimpleBar from 'simplebar';
+import './canvas-composer';
 
 window.bootstrap = bootstrap;
 

@@ -38,12 +38,14 @@
         dismissible: @js($dismissible),
         initialFocus: @js($initialFocus),
         initialFocusMethod: @js($initialFocusMethod),
-    })"
-    x-init="init()" x-on:close.stop="close()" x-cloak id="{{ $id }}" wire:ignore.self tabindex="-1"
-    data-bs-backdrop="{{ $dismissible ? 'true' : 'static' }}"
-    data-bs-keyboard="{{ $dismissible ? 'true' : 'false' }}" aria-hidden="true"
-    @if ($hasHeader) aria-labelledby="{{ $titleId }}" @endif
-    @if ($hasBody) aria-describedby="{{ $bodyId }}" @endif
+    })" x-init="init()" x-on:close.stop="close()" x-cloak id="{{ $id }}"
+    wire:ignore.self tabindex="-1" data-bs-backdrop="{{ $dismissible ? 'true' : 'static' }}"
+    data-bs-keyboard="{{ $dismissible ? 'true' : 'false' }}" aria-hidden="true" @if ($hasHeader)
+    aria-labelledby="{{ $titleId }}"
+    @endif
+    @if ($hasBody)
+        aria-describedby="{{ $bodyId }}"
+    @endif
     style="width: {{ $widthValue }};">
     @if ($hasHeader)
         <div class="offcanvas-header border-bottom">

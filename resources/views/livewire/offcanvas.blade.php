@@ -1,6 +1,5 @@
 <x-offcanvas wire:model.live="open" :id="$elementId" :width="$width" :placement="$placement" :dismissible="$dismissible"
-    :initial-focus="$initialFocus" :initial-focus-method="$initialFocusMethod"
-    x-on:overlay-offcanvas-load.window="$wire.loaded($event.detail ?? {})"
+    :initial-focus="$initialFocus" :initial-focus-method="$initialFocusMethod" x-on:overlay-offcanvas-load.window="$wire.loaded($event.detail ?? {})"
     x-on:overlay-offcanvas-open.window="$wire.openFromEvent($event.detail ?? {})"
     x-on:overlay-offcanvas-close.window="$wire.closeFromEvent($event.detail ?? {})">
     @if ($title)

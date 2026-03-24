@@ -17,6 +17,12 @@ return new class extends Migration {
             $table->integer('position_y');
             $table->unsignedInteger('width');
             $table->unsignedInteger('height');
+            $table->unsignedInteger('content_width');
+            $table->unsignedInteger('content_height');
+            $table->unsignedInteger('crop_top')->default(0);
+            $table->unsignedInteger('crop_right')->default(0);
+            $table->unsignedInteger('crop_bottom')->default(0);
+            $table->unsignedInteger('crop_left')->default(0);
             $table->unsignedInteger('z_index')->default(0);
             $table->boolean('is_visible')->default(true);
             $table->json('settings')->nullable();

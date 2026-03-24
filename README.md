@@ -14,6 +14,23 @@ npm install
 npm run playwright:install
 ```
 
+For the planned split-origin composer and overlay architecture, link and secure both local Valet hosts against this same project directory before implementing the overlay-origin work:
+
+```bash
+cd /Users/mike/Projects/twitch-task-pomo
+valet link app.twitch-task-pomo
+valet secure app.twitch-task-pomo
+valet link overlay.twitch-task-pomo
+valet secure overlay.twitch-task-pomo
+```
+
+Then keep `.env` aligned with `.env.example`:
+
+- `APP_URL=https://app.twitch-task-pomo.test`
+- `APP_OVERLAY_URL=https://overlay.twitch-task-pomo.test`
+- provider callback URLs should point at the app origin
+- `SESSION_DOMAIN=null` should remain host-only unless the security model is intentionally changed later
+
 Start the app in development:
 
 ```bash
@@ -52,6 +69,35 @@ This repository is a Laravel-first streaming overlay application for Twitch prod
 
 The codebase is still in early foundation work. Current implementation and immediate priorities are tracked in [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
+## Composer Mental Model
+
+The canvas composer now treats widget geometry as four separate concepts:
+
+- `position`: where the widget frame sits on the canvas
+- `frame size`: how large the widget appears on the canvas
+- `source bounds`: the authored content box inside the widget
+- `crop insets`: how much of that authored content is hidden from each edge
+
+The practical model is:
+
+- Resize changes the `frame size`
+- Crop changes only the `crop insets`
+- Source-bounds editing changes only the `source bounds`
+- Stretch changes the `frame size` without preserving aspect ratio
+
+Current editor gestures are:
+
+- drag handles: resize while preserving the visible-source ratio
+- `Alt` / `Option` + drag: crop
+- `Shift` + drag: stretch
+- `Ctrl` / `Cmd` + drag: edit source bounds
+
+Reset controls above the canvas reverse each manipulation independently:
+
+- `Reset Crop`: clears crop only
+- `Reset Source`: restores the widget's stored source-bounds defaults and clears crop
+- `Reset Aspect`: resizes the frame back to the current visible-source aspect ratio
+
 ## Documentation
 
 - [`docs/PRD.md`](docs/PRD.md): product requirements and phase scope
@@ -59,6 +105,7 @@ The codebase is still in early foundation work. Current implementation and immed
 - [`docs/agents/overview.md`](docs/agents/overview.md): agent-facing project guide and documentation index
 - [`docs/agents/theme.md`](docs/agents/theme.md): Phoenix integration boundaries and upstream reference usage
 - [`docs/backlog/`](docs/backlog): numbered implementation deep dives
+- [`docs/backlog/002-overlay-origin-and-widget-preview-architecture.md`](docs/backlog/002-overlay-origin-and-widget-preview-architecture.md): proposed split-origin, iframe, preview, Valet, and deployment spec for the composer hardening pass
 
 ## Phoenix Theme Reference
 
@@ -77,3 +124,19 @@ The purchased Phoenix package is committed as a read-only reference snapshot at 
 - Blade and Livewire are the default interactive stack.
 - Realtime overlay updates should use Laravel Echo.
 - Do not add or keep stale planning docs outside the maintained docs structure above.
+
+## Deployment Notes
+
+The planned production shape for signed overlays assumes two HTTPS origins served by the same Laravel codebase:
+
+- app origin, for example `app.example.com`
+- overlay origin, for example `overlay.example.com`
+
+The app origin owns authentication, dashboard UI, and provider callbacks. The overlay origin owns signed publishable canvas routes and low-trust preview shells. Keep session cookies host-only by default rather than sharing them across subdomains.
+
+For an Nginx target, plan on:
+
+- separate `server_name` blocks for app and overlay origins
+- TLS on both origins
+- the same Laravel release and PHP-FPM pool behind both hosts unless operations later require a dedicated split
+- origin-aware middleware and headers in Laravel for CSP, signed overlay delivery, and preview-shell framing rules

@@ -22,6 +22,7 @@
         "@iconscout/unicons": "^4.2.0",
         "@popperjs/core": "^2.11.8",
         "bootstrap": "^5.3.8",
+        "moveable": "^0.53.0",
         "sass": "^1.98.0",
         "simplebar": "^6.3.3"
     }

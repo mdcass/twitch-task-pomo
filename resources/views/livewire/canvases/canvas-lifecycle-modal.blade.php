@@ -19,7 +19,9 @@
             <p class="mb-0 text-body-secondary">
                 {{ $action === 'restore'
                     ? __(':name will return to the active canvas list and can be edited again.', ['name' => $this->canvas->name])
-                    : __(':name will move out of the active workspace until you restore it from the canvas list.', ['name' => $this->canvas->name]) }}
+                    : __(':name will move out of the active workspace until you restore it from the canvas list.', [
+                        'name' => $this->canvas->name,
+                    ]) }}
             </p>
         </div>
     </div>

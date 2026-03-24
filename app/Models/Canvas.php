@@ -65,6 +65,11 @@ class Canvas extends Model
         return $this->hasMany(WidgetInstance::class);
     }
 
+    public function orderedWidgetInstances(): HasMany
+    {
+        return $this->widgetInstances()->orderBy('z_index')->orderBy('id');
+    }
+
     protected function activityEventMap(): array
     {
         return [
