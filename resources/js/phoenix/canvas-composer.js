@@ -22,7 +22,14 @@ class CanvasComposerController {
         this.viewportResizeObserver =
             typeof ResizeObserver === 'function' ? new ResizeObserver(() => this.scheduleSync()) : null;
         this.viewportLayout = null;
+        this.history = [];
+        this.redoStack = [];
+        this.actionQueue = Promise.resolve();
         this.handleStageClick = this.handleStageClick.bind(this);
+        this.handleActionClick = this.handleActionClick.bind(this);
+        this.handleWindowKeydown = this.handleWindowKeydown.bind(this);
+        this.handleWidgetSetMutation = this.handleWidgetSetMutation.bind(this);
+        this.handleWidgetDeleted = this.handleWidgetDeleted.bind(this);
         this.scheduleSync = this.scheduleSync.bind(this);
         this.previewSessions = createPreviewSessions({
             getCopy: () => this.copy,
@@ -51,7 +58,8 @@ class CanvasComposerController {
                     Object.assign(widget, geometry);
                 }
             },
-            onGeometryCommit: (widgetId, geometry) => this.call('saveGeometry', widgetId, this.serializeGeometry(geometry)),
+            onGeometryCommit: (widgetId, geometry) =>
+                this.performHistoryMutation('saveGeometry', widgetId, this.serializeGeometry(geometry)),
             onModifierChange: () => {
                 this.syncShortcutState();
                 this.syncSelectionState();
@@ -62,7 +70,11 @@ class CanvasComposerController {
     init() {
         this.root.__canvasComposerController = this;
         window.addEventListener('resize', this.scheduleSync);
+        window.addEventListener('keydown', this.handleWindowKeydown);
+        window.addEventListener('widget-created', this.handleWidgetSetMutation);
+        window.addEventListener('widget-deleted-browser', this.handleWidgetDeleted);
         INTERACTIVE_VIEWPORT.addEventListener('change', this.scheduleSync);
+        this.root.addEventListener('click', this.handleActionClick);
         this.observeMutations();
         this.sync();
     }
@@ -224,6 +236,7 @@ class CanvasComposerController {
         this.syncSelectionState();
         this.syncShortcutState();
         this.syncInspectorRuntimeState();
+        this.syncHistoryControls();
         this.moveableInteraction.sync({
             canInteract: this.snapshot.canEdit === true && INTERACTIVE_VIEWPORT.matches,
             stage: this.stage,
@@ -353,6 +366,146 @@ class CanvasComposerController {
             crop_bottom: geometry.cropBottom,
             crop_left: geometry.cropLeft,
         };
+    }
+
+    captureHistorySnapshot() {
+        return {
+            widgets: this.snapshot.widgets.map((widget) => ({
+                id: widget.id,
+                position_x: widget.positionX,
+                position_y: widget.positionY,
+                width: widget.width,
+                height: widget.height,
+                content_width: widget.contentWidth,
+                content_height: widget.contentHeight,
+                crop_top: widget.cropTop,
+                crop_right: widget.cropRight,
+                crop_bottom: widget.cropBottom,
+                crop_left: widget.cropLeft,
+                is_visible: widget.isVisible,
+            })),
+        };
+    }
+
+    historySnapshotKey(snapshot) {
+        return JSON.stringify(snapshot);
+    }
+
+    queueAction(task) {
+        const nextTask = this.actionQueue.then(task, task);
+
+        this.actionQueue = nextTask.catch(() => {});
+
+        return nextTask;
+    }
+
+    async performHistoryMutation(method, ...args) {
+        if (!this.snapshot.canEdit) {
+            return null;
+        }
+
+        return this.queueAction(async () => {
+            const before = this.captureHistorySnapshot();
+            const selectedBefore = this.snapshot.selectedWidgetId;
+
+            await this.call(method, ...args);
+            this.sync();
+
+            const after = this.captureHistorySnapshot();
+            const selectedAfter = this.snapshot.selectedWidgetId;
+
+            if (this.historySnapshotKey(before) === this.historySnapshotKey(after) && selectedBefore === selectedAfter) {
+                this.syncHistoryControls();
+                return null;
+            }
+
+            this.history.push({
+                before,
+                after,
+                selectedBefore,
+                selectedAfter,
+            });
+
+            if (this.history.length > 50) {
+                this.history.splice(0, this.history.length - 50);
+            }
+
+            this.redoStack = [];
+            this.syncHistoryControls();
+
+            return null;
+        });
+    }
+
+    async restoreHistoryEntry(entry, direction) {
+        if (!entry || !this.snapshot.canEdit) {
+            return;
+        }
+
+        const targetSnapshot = direction === 'undo' ? entry.before : entry.after;
+        const targetSelection = direction === 'undo' ? entry.selectedBefore : entry.selectedAfter;
+
+        await this.call('restoreHistoryState', targetSnapshot.widgets, targetSelection);
+        this.sync();
+        this.syncHistoryControls();
+    }
+
+    async undo() {
+        if (!this.history.length) {
+            return;
+        }
+
+        return this.queueAction(async () => {
+            const entry = this.history.pop();
+
+            if (!entry) {
+                return;
+            }
+
+            await this.restoreHistoryEntry(entry, 'undo');
+            this.redoStack.push(entry);
+            this.syncHistoryControls();
+        });
+    }
+
+    async redo() {
+        if (!this.redoStack.length) {
+            return;
+        }
+
+        return this.queueAction(async () => {
+            const entry = this.redoStack.pop();
+
+            if (!entry) {
+                return;
+            }
+
+            await this.restoreHistoryEntry(entry, 'redo');
+            this.history.push(entry);
+            this.syncHistoryControls();
+        });
+    }
+
+    clearHistory() {
+        this.history = [];
+        this.redoStack = [];
+        this.syncHistoryControls();
+    }
+
+    syncHistoryControls() {
+        const canUndo = this.snapshot.canEdit === true && this.history.length > 0;
+        const canRedo = this.snapshot.canEdit === true && this.redoStack.length > 0;
+
+        this.root.dataset.canUndo = canUndo ? 'true' : 'false';
+        this.root.dataset.canRedo = canRedo ? 'true' : 'false';
+        this.root.querySelectorAll('[data-composer-history]').forEach((element) => {
+            if (!(element instanceof HTMLButtonElement)) {
+                return;
+            }
+
+            const direction = element.dataset.composerHistory;
+            element.disabled = direction === 'undo' ? !canUndo : !canRedo;
+        });
     }
 
     renderStage() {
@@ -504,6 +657,80 @@ class CanvasComposerController {
         return this.snapshot.selectedWidgetId ? this.widgetElements.get(this.snapshot.selectedWidgetId) ?? null : null;
     }
 
+    handleActionClick(event) {
+        const target = event.target instanceof Element ? event.target : null;
+
+        if (!target) {
+            return;
+        }
+
+        const historyButton = target.closest('[data-composer-history]');
+
+        if (historyButton instanceof HTMLElement && this.root.contains(historyButton)) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (historyButton.dataset.composerHistory === 'undo') {
+                void this.undo();
+            } else if (historyButton.dataset.composerHistory === 'redo') {
+                void this.redo();
+            }
+
+            return;
+        }
+
+        const resetButton = target.closest('[data-composer-reset]');
+
+        if (resetButton instanceof HTMLElement && this.root.contains(resetButton)) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const widgetId = Number(resetButton.dataset.widgetId || this.snapshot.selectedWidgetId || 0);
+            const scope = resetButton.dataset.composerReset;
+
+            if (widgetId && scope) {
+                void this.performHistoryMutation('resetGeometry', widgetId, scope);
+            }
+
+            return;
+        }
+
+        const layerAction = target.closest('[data-composer-layer-action], [data-composer-selected-action]');
+
+        if (!(layerAction instanceof HTMLElement) || !this.root.contains(layerAction)) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const action = layerAction.dataset.composerLayerAction ?? layerAction.dataset.composerSelectedAction ?? '';
+        const widgetId = Number(layerAction.dataset.widgetId || 0);
+
+        if (!widgetId) {
+            return;
+        }
+
+        if (action === 'visibility') {
+            void this.performHistoryMutation('toggleVisibility', widgetId);
+            return;
+        }
+
+        if (action === 'reorder') {
+            const direction = layerAction.dataset.direction;
+
+            if (direction) {
+                void this.performHistoryMutation('reorderWidget', widgetId, direction);
+            }
+
+            return;
+        }
+
+        if (action === 'delete') {
+            this.openDeleteModal(widgetId);
+        }
+    }
+
     handleStageClick(event) {
         const widget = event.target.closest('[data-widget-id]');
         const widgetId = Number(widget?.dataset.widgetId || 0);
@@ -525,8 +752,98 @@ class CanvasComposerController {
         this.call('selectWidget', widgetId);
     }
 
-    call(method, ...args) {
-        this.wire?.$call?.(method, ...args);
+    handleWidgetSetMutation() {
+        this.clearHistory();
+    }
+
+    handleWidgetDeleted(event) {
+        this.clearHistory();
+
+        const detail = event instanceof CustomEvent && event.detail && typeof event.detail === 'object' ? event.detail : {};
+        const deletedWidgetId = Number(detail.deletedWidgetId || 0) || null;
+        const selectedWidgetId = Number(detail.selectedWidgetId || 0) || null;
+
+        void this.queueAction(async () => {
+            await this.call('handleWidgetDeleted', deletedWidgetId, selectedWidgetId);
+            this.sync();
+        });
+    }
+
+    hasBlockingOverlayOpen() {
+        return document.querySelector('.modal.show, .offcanvas.show') !== null;
+    }
+
+    isTypingTarget(target) {
+        return (
+            target instanceof HTMLElement &&
+            (target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]') !==
+                null ||
+                target.isContentEditable)
+        );
+    }
+
+    handleWindowKeydown(event) {
+        if (!this.root.isConnected || this.snapshot.canEdit !== true) {
+            return;
+        }
+
+        const target = event.target instanceof HTMLElement ? event.target : document.activeElement;
+
+        if (this.hasBlockingOverlayOpen() || this.isTypingTarget(target)) {
+            return;
+        }
+
+        if ((event.metaKey || event.ctrlKey) && !event.altKey && String(event.key).toLowerCase() === 'z') {
+            event.preventDefault();
+
+            if (event.shiftKey) {
+                void this.redo();
+            } else {
+                void this.undo();
+            }
+
+            return;
+        }
+
+        if (event.ctrlKey && !event.metaKey && !event.altKey && String(event.key).toLowerCase() === 'y') {
+            event.preventDefault();
+            void this.redo();
+            return;
+        }
+
+        if (
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.altKey &&
+            (event.key === 'Delete' || event.key === 'Backspace') &&
+            this.snapshot.selectedWidgetId
+        ) {
+            event.preventDefault();
+            this.openDeleteModal(this.snapshot.selectedWidgetId);
+        }
+    }
+
+    openDeleteModal(widgetId) {
+        const modalId = this.root.dataset.deleteModalId;
+
+        if (!modalId || !widgetId) {
+            return;
+        }
+
+        window.dispatchEvent(
+            new CustomEvent('overlay-modal-load', {
+                detail: {
+                    id: modalId,
+                    data: {
+                        widgetId,
+                    },
+                },
+            }),
+        );
+    }
+
+    async call(method, ...args) {
+        return this.wire?.$call?.(method, ...args);
     }
 
     setModifierState(state) {
@@ -549,6 +866,15 @@ class CanvasComposerController {
         return this.moveableInteraction.currentTargetId;
     }
 
+    getHistoryState() {
+        return {
+            canUndo: this.history.length > 0,
+            canRedo: this.redoStack.length > 0,
+            undoCount: this.history.length,
+            redoCount: this.redoStack.length,
+        };
+    }
+
     getViewState() {
         return {
             fitScale: this.viewportLayout?.fitScale ?? 0,
@@ -561,8 +887,12 @@ class CanvasComposerController {
 
     destroy() {
         window.removeEventListener('resize', this.scheduleSync);
+        window.removeEventListener('keydown', this.handleWindowKeydown);
+        window.removeEventListener('widget-created', this.handleWidgetSetMutation);
+        window.removeEventListener('widget-deleted-browser', this.handleWidgetDeleted);
         INTERACTIVE_VIEWPORT.removeEventListener('change', this.scheduleSync);
         this.observedStage?.removeEventListener('click', this.handleStageClick);
+        this.root.removeEventListener('click', this.handleActionClick);
         if (this.observedViewport && this.viewportResizeObserver) {
             this.viewportResizeObserver.unobserve(this.observedViewport);
         }

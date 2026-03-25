@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Actions\WidgetInstances\CreateBuiltInWidget;
 use App\Actions\WidgetInstances\CreateRemoteWidget;
+use App\Actions\WidgetInstances\DeleteWidgetInstance;
+use App\Actions\WidgetInstances\RestoreCanvasWidgetState;
 use App\Actions\WidgetInstances\UpdateWidgetGeometry;
 use App\Enums\Models\WidgetPreviewStatus;
 use App\Enums\Models\WidgetSourceKind;
@@ -12,6 +14,7 @@ use App\Enums\TeamMemberRole;
 use App\Livewire\Canvases\AddBuiltInWidgetForm;
 use App\Livewire\Canvases\AddRemoteWidgetForm;
 use App\Livewire\Canvases\CanvasComposer;
+use App\Livewire\Canvases\WidgetDeleteModal;
 use App\Models\Canvas;
 use App\Models\User;
 use App\Models\WidgetInstance;
@@ -538,6 +541,114 @@ class CanvasComposerTest extends TestCase
         $this->assertSame(281, $widget->height);
     }
 
+    public function test_widget_delete_modal_removes_the_widget_and_selects_the_nearest_remaining_layer(): void
+    {
+        $user = User::factory()->withStreamerTeam()->create();
+        $canvas = Canvas::factory()->for($user->currentTeam)->create();
+        $first = WidgetInstance::factory()->for($canvas)->taskList()->create([
+            'team_id' => $user->currentTeam->id,
+            'z_index' => 0,
+            'name' => 'First Layer',
+        ]);
+        $second = WidgetInstance::factory()->for($canvas)->pomodoro()->create([
+            'team_id' => $user->currentTeam->id,
+            'z_index' => 1,
+            'name' => 'Second Layer',
+        ]);
+        $third = WidgetInstance::factory()->for($canvas)->remoteUrl('https://widgets.example.test/embed')->create([
+            'team_id' => $user->currentTeam->id,
+            'z_index' => 2,
+            'name' => 'Third Layer',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(WidgetDeleteModal::class, [
+                'widgetId' => $second->id,
+                'modalId' => 'canvas-widget-delete-modal',
+            ])
+            ->call('confirm')
+            ->assertDispatched('widget-deleted', deletedWidgetId: $second->id, selectedWidgetId: $third->id)
+            ->assertDispatched('overlay-modal-close', id: 'canvas-widget-delete-modal');
+
+        $this->assertDatabaseMissing('widget_instances', ['id' => $second->id]);
+        $this->assertSame(0, $first->fresh()->z_index);
+        $this->assertSame(1, $third->fresh()->z_index);
+    }
+
+    public function test_canvas_composer_can_restore_a_history_snapshot_for_non_destructive_changes(): void
+    {
+        $user = User::factory()->withStreamerTeam()->create();
+        $canvas = Canvas::factory()->for($user->currentTeam)->create();
+        $first = WidgetInstance::factory()->for($canvas)->taskList()->create([
+            'team_id' => $user->currentTeam->id,
+            'z_index' => 0,
+            'position_x' => 80,
+            'position_y' => 100,
+            'width' => 520,
+            'height' => 320,
+        ]);
+        $second = WidgetInstance::factory()->for($canvas)->pomodoro()->create([
+            'team_id' => $user->currentTeam->id,
+            'z_index' => 1,
+            'position_x' => 200,
+            'position_y' => 240,
+            'width' => 400,
+            'height' => 260,
+            'is_visible' => false,
+        ]);
+
+        $historySnapshot = [
+            [
+                'id' => $second->id,
+                'position_x' => 120,
+                'position_y' => 160,
+                'width' => 360,
+                'height' => 220,
+                'content_width' => 480,
+                'content_height' => 300,
+                'crop_top' => 10,
+                'crop_right' => 12,
+                'crop_bottom' => 14,
+                'crop_left' => 16,
+                'is_visible' => true,
+            ],
+            [
+                'id' => $first->id,
+                'position_x' => 320,
+                'position_y' => 200,
+                'width' => 640,
+                'height' => 420,
+                'content_width' => 720,
+                'content_height' => 480,
+                'crop_top' => 20,
+                'crop_right' => 24,
+                'crop_bottom' => 28,
+                'crop_left' => 32,
+                'is_visible' => false,
+            ],
+        ];
+
+        Livewire::actingAs($user)
+            ->test(CanvasComposer::class, ['canvasId' => $canvas->id])
+            ->call('restoreHistoryState', $historySnapshot, $first->id)
+            ->assertSet('selectedWidgetId', $first->id);
+
+        $first->refresh();
+        $second->refresh();
+
+        $this->assertSame(1, $first->z_index);
+        $this->assertFalse($first->is_visible);
+        $this->assertSame(320, $first->position_x);
+        $this->assertSame(200, $first->position_y);
+        $this->assertSame(32, $first->crop_left);
+
+        $this->assertSame(0, $second->z_index);
+        $this->assertTrue($second->is_visible);
+        $this->assertSame(120, $second->position_x);
+        $this->assertSame(160, $second->position_y);
+        $this->assertSame(14, $second->crop_bottom);
+    }
+
     public function test_overlay_canvas_renders_scaled_and_cropped_iframes(): void
     {
         config()->set('app.url', 'https://app.twitch-task-pomo.test');
@@ -647,6 +758,33 @@ class CanvasComposerTest extends TestCase
                 'crop_left' => 0,
             ]);
             $this->fail('Expected widget geometry update to be denied.');
+        } catch (AuthorizationException) {
+            $this->assertSame(0, $widget->fresh()->position_x);
+        }
+
+        try {
+            app(DeleteWidgetInstance::class)->delete($member, $widget);
+            $this->fail('Expected widget deletion to be denied.');
+        } catch (AuthorizationException) {
+            $this->assertDatabaseHas('widget_instances', ['id' => $widget->id]);
+        }
+
+        try {
+            app(RestoreCanvasWidgetState::class)->restore($member, $canvas, [[
+                'id' => $widget->id,
+                'position_x' => 100,
+                'position_y' => 100,
+                'width' => 600,
+                'height' => 400,
+                'content_width' => 600,
+                'content_height' => 400,
+                'crop_top' => 0,
+                'crop_right' => 0,
+                'crop_bottom' => 0,
+                'crop_left' => 0,
+                'is_visible' => true,
+            ]]);
+            $this->fail('Expected widget history restore to be denied.');
         } catch (AuthorizationException) {
             $this->assertSame(0, $widget->fresh()->position_x);
         }

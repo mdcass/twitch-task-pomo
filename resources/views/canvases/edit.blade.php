@@ -115,5 +115,12 @@
             'title' => 'Archive Canvas',
             'maxWidth' => 'md',
         ])
+
+        @livewire('modal', [
+            'component' => 'canvases.widget-delete-modal',
+            'elementId' => 'canvas-widget-delete-modal',
+            'title' => 'Delete Widget',
+            'maxWidth' => 'md',
+        ])
     @endpush
 </x-app-layout>

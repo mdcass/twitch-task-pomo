@@ -23,7 +23,8 @@
 @endphp
 
 <div class="row g-4" data-composer-editor data-can-edit="{{ $this->can_edit ? 'true' : 'false' }}"
-    data-selected-widget-id="{{ $selectedWidgetId ?? '' }}" x-data="{
+    data-selected-widget-id="{{ $selectedWidgetId ?? '' }}" data-delete-modal-id="canvas-widget-delete-modal"
+    x-data="{
         controller: null,
         init() {
             this.controller = window.__canvasComposerCreate?.($el, $wire) ?? null;
@@ -42,6 +43,18 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
+                    @if ($this->can_edit)
+                        <button type="button" class="btn btn-sm btn-phoenix-secondary" data-composer-history="undo"
+                            disabled>
+                            <span class="fas fa-rotate-left me-2" aria-hidden="true"></span>
+                            {{ __('Undo') }}
+                        </button>
+                        <button type="button" class="btn btn-sm btn-phoenix-secondary" data-composer-history="redo"
+                            disabled>
+                            <span class="fas fa-rotate-right me-2" aria-hidden="true"></span>
+                            {{ __('Redo') }}
+                        </button>
+                    @endif
                     <span class="badge badge-phoenix badge-phoenix-primary">
                         {{ __('Canvas :width x :height', ['width' => $this->canvas->width, 'height' => $this->canvas->height]) }}
                     </span>
@@ -73,18 +86,15 @@
 
                     <div class="d-flex align-items-center flex-wrap gap-2">
                         <button type="button" class="btn btn-sm btn-phoenix-secondary" data-composer-reset="crop"
-                            @disabled(!$this->selected_widget || !$this->can_edit)
-                            wire:click="resetGeometry({{ $this->selected_widget?->id ?? 0 }}, 'crop')">
+                            data-widget-id="{{ $this->selected_widget?->id ?? 0 }}" @disabled(!$this->selected_widget || !$this->can_edit)>
                             {{ __('Reset Crop') }}
                         </button>
                         <button type="button" class="btn btn-sm btn-phoenix-secondary" data-composer-reset="source"
-                            @disabled(!$this->selected_widget || !$this->can_edit)
-                            wire:click="resetGeometry({{ $this->selected_widget?->id ?? 0 }}, 'source')">
+                            data-widget-id="{{ $this->selected_widget?->id ?? 0 }}" @disabled(!$this->selected_widget || !$this->can_edit)>
                             {{ __('Reset Source') }}
                         </button>
                         <button type="button" class="btn btn-sm btn-phoenix-secondary" data-composer-reset="aspect"
-                            @disabled(!$this->selected_widget || !$this->can_edit)
-                            wire:click="resetGeometry({{ $this->selected_widget?->id ?? 0 }}, 'aspect')">
+                            data-widget-id="{{ $this->selected_widget?->id ?? 0 }}" @disabled(!$this->selected_widget || !$this->can_edit)>
                             {{ __('Reset Aspect') }}
                         </button>
                     </div>
@@ -178,20 +188,26 @@
                                 @if ($this->can_edit)
                                     <div class="d-flex align-items-center gap-1">
                                         <button type="button" class="btn btn-sm btn-phoenix-secondary"
-                                            wire:click="toggleVisibility({{ $widget->id }})"
+                                            data-composer-layer-action="visibility"
+                                            data-widget-id="{{ $widget->id }}"
                                             title="{{ $widget->is_visible ? __('Hide widget') : __('Show widget') }}">
                                             <span class="fas {{ $widget->is_visible ? 'fa-eye' : 'fa-eye-slash' }}"
                                                 aria-hidden="true"></span>
                                         </button>
                                         <button type="button" class="btn btn-sm btn-phoenix-secondary"
-                                            wire:click="reorderWidget({{ $widget->id }}, 'backward')"
-                                            title="{{ __('Send backward') }}">
+                                            data-composer-layer-action="reorder" data-widget-id="{{ $widget->id }}"
+                                            data-direction="backward" title="{{ __('Send backward') }}">
                                             <span class="fas fa-arrow-down" aria-hidden="true"></span>
                                         </button>
                                         <button type="button" class="btn btn-sm btn-phoenix-secondary"
-                                            wire:click="reorderWidget({{ $widget->id }}, 'forward')"
-                                            title="{{ __('Bring forward') }}">
+                                            data-composer-layer-action="reorder" data-widget-id="{{ $widget->id }}"
+                                            data-direction="forward" title="{{ __('Bring forward') }}">
                                             <span class="fas fa-arrow-up" aria-hidden="true"></span>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-phoenix-secondary text-danger"
+                                            data-composer-layer-action="delete" data-widget-id="{{ $widget->id }}"
+                                            title="{{ __('Delete widget') }}">
+                                            <span class="fas fa-trash" aria-hidden="true"></span>
                                         </button>
                                     </div>
                                 @endif
@@ -260,12 +276,19 @@
                         @if ($this->can_edit)
                             <div class="d-flex flex-wrap gap-2">
                                 <button type="button" class="btn btn-sm btn-phoenix-secondary"
-                                    wire:click="reorderWidget({{ $this->selected_widget->id }}, 'back')">
+                                    data-composer-selected-action="reorder"
+                                    data-widget-id="{{ $this->selected_widget->id }}" data-direction="back">
                                     {{ __('Send to back') }}
                                 </button>
                                 <button type="button" class="btn btn-sm btn-phoenix-secondary"
-                                    wire:click="reorderWidget({{ $this->selected_widget->id }}, 'front')">
+                                    data-composer-selected-action="reorder"
+                                    data-widget-id="{{ $this->selected_widget->id }}" data-direction="front">
                                     {{ __('Bring to front') }}
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                    data-composer-selected-action="delete"
+                                    data-widget-id="{{ $this->selected_widget->id }}">
+                                    {{ __('Delete widget') }}
                                 </button>
                             </div>
                         @endif

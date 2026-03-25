@@ -3,6 +3,7 @@
 namespace App\Livewire\Canvases;
 
 use App\Actions\WidgetInstances\ReorderWidgetInstance;
+use App\Actions\WidgetInstances\RestoreCanvasWidgetState;
 use App\Actions\WidgetInstances\ToggleWidgetVisibility;
 use App\Actions\WidgetInstances\UpdateWidgetGeometry;
 use App\Models\Canvas;
@@ -109,6 +110,30 @@ class CanvasComposer extends Component
         $this->selectedWidgetId = $widgetId;
         $this->refreshComputedState();
         $this->syncPreviewSeeds();
+    }
+
+    #[On('widget-deleted')]
+    public function handleWidgetDeleted(?int $deletedWidgetId = null, ?int $selectedWidgetId = null): void
+    {
+        $this->selectedWidgetId = $this->resolvedSelectedWidgetId($selectedWidgetId, $deletedWidgetId);
+        $this->refreshComputedState();
+        $this->syncPreviewSeeds();
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $widgets
+     */
+    public function restoreHistoryState(
+        array $widgets,
+        ?int $selectedWidgetId,
+        RestoreCanvasWidgetState $restoreCanvasWidgetState,
+    ): void {
+        $canvas = $this->resolveCanvas();
+
+        $restoreCanvasWidgetState->restore(auth()->user(), $canvas, $widgets);
+
+        $this->selectedWidgetId = $this->resolvedSelectedWidgetId($selectedWidgetId);
+        $this->refreshComputedState();
     }
 
     #[Computed]
@@ -306,6 +331,27 @@ class CanvasComposer extends Component
     private function refreshComputedState(): void
     {
         unset($this->canvas, $this->widgets, $this->selectedWidget, $this->canEdit, $this->stageSnapshot);
+    }
+
+    private function resolvedSelectedWidgetId(?int $preferredWidgetId = null, ?int $deletedWidgetId = null): ?int
+    {
+        if (is_int($preferredWidgetId) && $this->widgetExists($preferredWidgetId)) {
+            return $preferredWidgetId;
+        }
+
+        if ($deletedWidgetId !== null) {
+            return $this->resolveCanvas()
+                ->orderedWidgetInstances()
+                ->value('id');
+        }
+
+        if ($this->selectedWidgetId !== null && $this->widgetExists($this->selectedWidgetId)) {
+            return $this->selectedWidgetId;
+        }
+
+        return $this->resolveCanvas()
+            ->orderedWidgetInstances()
+            ->value('id');
     }
 
     /**

@@ -187,6 +187,163 @@ it('resets crop, source bounds, and aspect from the shortcut toolbar', function 
         );
 });
 
+it('supports session-local undo and redo for non-destructive composer edits', function (): void {
+    $user = User::factory()->withStreamerTeam()->create([
+        'email' => 'browser-composer-history@example.test',
+    ]);
+
+    $canvas = Canvas::factory()->create([
+        'team_id' => $user->currentTeam->id,
+        'created_by_user_id' => $user->id,
+        'name' => 'History Scene',
+    ]);
+
+    $widget = WidgetInstance::factory()->for($canvas)->create([
+        'team_id' => $user->currentTeam->id,
+        'name' => 'History Widget',
+        'crop_top' => 24,
+        'crop_right' => 36,
+        'crop_bottom' => 48,
+        'crop_left' => 60,
+        'content_width' => 720,
+        'content_height' => 480,
+    ]);
+
+    $this->visit('/login')
+        ->fill('Email address', 'browser-composer-history@example.test')
+        ->fill('Password', 'password')
+        ->keys('#password', 'Enter')
+        ->assertPathIs('/dashboard');
+
+    $this->visit('/canvases/'.$canvas->id.'/edit')
+        ->assertSee('History Scene')
+        ->click('[data-widget-layer-select="'.$widget->id.'"]')
+        ->wait(0.5)
+        ->assertScript(
+            "(() => { const controller = document.querySelector('[data-composer-editor]')?.__canvasComposerController; const state = controller?.getHistoryState?.(); return !!state && state.undoCount === 0 && state.redoCount === 0 && state.canUndo === false && state.canRedo === false; })()",
+            true,
+        )
+        ->click('[data-composer-reset="crop"]')
+        ->wait(0.5)
+        ->assertScript(
+            "(() => document.body.textContent.includes('T: 0 / R: 0 / B: 0 / L: 0'))()",
+            true,
+        )
+        ->assertScript(
+            "(() => { const controller = document.querySelector('[data-composer-editor]')?.__canvasComposerController; const state = controller?.getHistoryState?.(); return !!state && state.undoCount === 1 && state.redoCount === 0 && state.canUndo === true && state.canRedo === false; })()",
+            true,
+        )
+        ->assertScript(
+            "(() => { document.querySelector('[data-composer-history=\"undo\"]')?.click(); return true; })()",
+            true,
+        )
+        ->wait(0.5)
+        ->assertScript(
+            "(() => document.body.textContent.includes('T: 24 / R: 36 / B: 48 / L: 60'))()",
+            true,
+        )
+        ->assertScript(
+            "(() => { const controller = document.querySelector('[data-composer-editor]')?.__canvasComposerController; const state = controller?.getHistoryState?.(); return !!state && state.undoCount === 0 && state.redoCount === 1 && state.canUndo === false && state.canRedo === true; })()",
+            true,
+        )
+        ->assertScript(
+            "(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'y', ctrlKey: true, bubbles: true, cancelable: true })); return true; })()",
+            true,
+        )
+        ->wait(0.5)
+        ->assertScript(
+            "(() => document.body.textContent.includes('T: 0 / R: 0 / B: 0 / L: 0'))()",
+            true,
+        )
+        ->assertScript(
+            "(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true })); return true; })()",
+            true,
+        )
+        ->wait(0.5)
+        ->assertScript(
+            "(() => document.body.textContent.includes('T: 24 / R: 36 / B: 48 / L: 60'))()",
+            true,
+        )
+        ->click('[data-composer-layer-action="visibility"][data-widget-id="'.$widget->id.'"]')
+        ->wait(0.5)
+        ->assertSee('Hidden')
+        ->assertScript(
+            "(() => { const controller = document.querySelector('[data-composer-editor]')?.__canvasComposerController; const state = controller?.getHistoryState?.(); return !!state && state.undoCount === 1 && state.redoCount === 0 && state.canUndo === true && state.canRedo === false; })()",
+            true,
+        );
+});
+
+it('routes widget deletion through the shared confirmation modal from inspector, layer actions, and keyboard shortcuts', function (): void {
+    $user = User::factory()->withStreamerTeam()->create([
+        'email' => 'browser-composer-delete@example.test',
+    ]);
+
+    $canvas = Canvas::factory()->create([
+        'team_id' => $user->currentTeam->id,
+        'created_by_user_id' => $user->id,
+        'name' => 'Delete Scene',
+    ]);
+
+    $first = WidgetInstance::factory()->for($canvas)->taskList()->create([
+        'team_id' => $user->currentTeam->id,
+        'name' => 'First Layer',
+        'z_index' => 0,
+    ]);
+    $second = WidgetInstance::factory()->for($canvas)->pomodoro()->create([
+        'team_id' => $user->currentTeam->id,
+        'name' => 'Second Layer',
+        'z_index' => 1,
+    ]);
+    $third = WidgetInstance::factory()->for($canvas)->remoteUrl('https://widgets.example.test/embed')->create([
+        'team_id' => $user->currentTeam->id,
+        'name' => 'Third Layer',
+        'z_index' => 2,
+    ]);
+
+    $this->visit('/login')
+        ->fill('Email address', 'browser-composer-delete@example.test')
+        ->fill('Password', 'password')
+        ->keys('#password', 'Enter')
+        ->assertPathIs('/dashboard');
+
+    $this->visit('/canvases/'.$canvas->id.'/edit')
+        ->assertSee('Delete Scene')
+        ->click('[data-widget-layer-select="'.$first->id.'"]')
+        ->wait(0.5)
+        ->click('[data-composer-selected-action="delete"][data-widget-id="'.$first->id.'"]')
+        ->wait(0.5)
+        ->assertVisible('.modal.show')
+        ->assertSee('Delete this widget?')
+        ->assertSee('Undo will not restore deleted widgets')
+        ->click('[data-widget-delete-cancel]')
+        ->wait(0.3)
+        ->assertScript(
+            "(() => document.querySelector('.modal.show') === null)()",
+            true,
+        )
+        ->click('[data-composer-layer-action="delete"][data-widget-id="'.$second->id.'"]')
+        ->wait(0.5)
+        ->assertVisible('.modal.show')
+        ->click('[data-widget-delete-confirm]')
+        ->wait(0.8)
+        ->assertScript(
+            "(() => document.querySelector('[data-composer-editor]')?.dataset.selectedWidgetId === '".$third->id."')()",
+            true,
+        )
+        ->assertScript(
+            "(() => document.querySelector('[data-composer-layer-select=\"".$second->id."\"]') === null)()",
+            true,
+        )
+        ->assertScript(
+            "(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true })); return true; })()",
+            true,
+        )
+        ->wait(0.5)
+        ->assertVisible('.modal.show')
+        ->assertSee('Third Layer')
+        ->click('[data-widget-delete-cancel]');
+});
+
 it('shows advisory timeout UI for a timed out remote preview session', function (): void {
     $user = User::factory()->withStreamerTeam()->create([
         'email' => 'browser-composer-timeout@example.test',
