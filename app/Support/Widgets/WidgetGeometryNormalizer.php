@@ -32,55 +32,52 @@ class WidgetGeometryNormalizer
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $input
-     * @return array{
-     *     position_x:int,
-     *     position_y:int,
-     *     width:int,
-     *     height:int,
-     *     content_width:int,
-     *     content_height:int,
-     *     crop_top:int,
-     *     crop_right:int,
-     *     crop_bottom:int,
-     *     crop_left:int
-     * }
-     */
-    public function normalize(Canvas $canvas, array $input): array
+    public function normalize(Canvas $canvas, WidgetGeometry $geometry): WidgetGeometry
     {
         $limits = $this->geometryLimits($canvas);
         $canvasWidth = max(1, (int) $canvas->width);
         $canvasHeight = max(1, (int) $canvas->height);
-        $width = $this->clampInt($input['width'] ?? 0, $limits['minWidth'], $canvasWidth);
-        $height = $this->clampInt($input['height'] ?? 0, $limits['minHeight'], $canvasHeight);
-        $contentWidth = $this->clampInt($input['content_width'] ?? 1, 1, $limits['maxContentWidth']);
-        $contentHeight = $this->clampInt($input['content_height'] ?? 1, 1, $limits['maxContentHeight']);
+        $width = $this->clampInt($geometry->width, $limits['minWidth'], $canvasWidth);
+        $height = $this->clampInt($geometry->height, $limits['minHeight'], $canvasHeight);
+        $contentWidth = $this->clampInt($geometry->contentWidth, 1, $limits['maxContentWidth']);
+        $contentHeight = $this->clampInt($geometry->contentHeight, 1, $limits['maxContentHeight']);
         [$cropLeft, $cropRight] = $this->normalizeCropPair(
-            $this->clampInt($input['crop_left'] ?? 0, 0, max(0, $contentWidth - 1)),
-            $this->clampInt($input['crop_right'] ?? 0, 0, max(0, $contentWidth - 1)),
+            $this->clampInt($geometry->cropLeft, 0, max(0, $contentWidth - 1)),
+            $this->clampInt($geometry->cropRight, 0, max(0, $contentWidth - 1)),
             $contentWidth,
         );
+        [$cropLeft, $cropRight] = $this->enforceMinimumVisibleContent(
+            $cropLeft,
+            $cropRight,
+            $contentWidth,
+            $limits['minWidth'],
+        );
         [$cropTop, $cropBottom] = $this->normalizeCropPair(
-            $this->clampInt($input['crop_top'] ?? 0, 0, max(0, $contentHeight - 1)),
-            $this->clampInt($input['crop_bottom'] ?? 0, 0, max(0, $contentHeight - 1)),
+            $this->clampInt($geometry->cropTop, 0, max(0, $contentHeight - 1)),
+            $this->clampInt($geometry->cropBottom, 0, max(0, $contentHeight - 1)),
             $contentHeight,
         );
-        $x = $this->clampInt($input['position_x'] ?? 0, 0, max(0, $canvasWidth - $width));
-        $y = $this->clampInt($input['position_y'] ?? 0, 0, max(0, $canvasHeight - $height));
+        [$cropTop, $cropBottom] = $this->enforceMinimumVisibleContent(
+            $cropTop,
+            $cropBottom,
+            $contentHeight,
+            $limits['minHeight'],
+        );
+        $x = $this->clampInt($geometry->positionX, 0, max(0, $canvasWidth - $width));
+        $y = $this->clampInt($geometry->positionY, 0, max(0, $canvasHeight - $height));
 
-        return [
-            'position_x' => $x,
-            'position_y' => $y,
-            'width' => $width,
-            'height' => $height,
-            'content_width' => $contentWidth,
-            'content_height' => $contentHeight,
-            'crop_top' => $cropTop,
-            'crop_right' => $cropRight,
-            'crop_bottom' => $cropBottom,
-            'crop_left' => $cropLeft,
-        ];
+        return new WidgetGeometry(
+            positionX: $x,
+            positionY: $y,
+            width: $width,
+            height: $height,
+            contentWidth: $contentWidth,
+            contentHeight: $contentHeight,
+            cropTop: $cropTop,
+            cropRight: $cropRight,
+            cropBottom: $cropBottom,
+            cropLeft: $cropLeft,
+        );
     }
 
     private function clampInt(mixed $value, int $min, int $max): int
@@ -117,5 +114,32 @@ class WidgetGeometryNormalizer
         }
 
         return [$leadingCrop, $trailingCrop];
+    }
+
+    /**
+     * @return array{0:int, 1:int}
+     */
+    private function enforceMinimumVisibleContent(
+        int $leadingCrop,
+        int $trailingCrop,
+        int $contentSize,
+        int $minimumVisibleSize,
+    ): array {
+        $minimumVisibleSize = max(1, min($minimumVisibleSize, $contentSize));
+        $maximumCrop = max(0, $contentSize - $minimumVisibleSize);
+        $totalCrop = $leadingCrop + $trailingCrop;
+
+        if ($totalCrop <= $maximumCrop || $totalCrop === 0) {
+            return [$leadingCrop, $trailingCrop];
+        }
+
+        $reduction = $totalCrop - $maximumCrop;
+        $leadingReduction = intdiv($reduction * $leadingCrop, $totalCrop);
+        $trailingReduction = $reduction - $leadingReduction;
+
+        return [
+            max(0, $leadingCrop - $leadingReduction),
+            max(0, $trailingCrop - $trailingReduction),
+        ];
     }
 }

@@ -18,6 +18,10 @@ return new class extends Migration {
             $table->timestamps();
             $table->softDeletes();
         });
+
+        Schema::table('users', function (Blueprint $table): void {
+            $table->foreign('current_team_id')->references('id')->on('teams')->restrictOnDelete();
+        });
     }
 
     /**
@@ -25,6 +29,10 @@ return new class extends Migration {
      */
     public function down(): void
     {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropForeign(['current_team_id']);
+        });
+
         Schema::dropIfExists('teams');
     }
 };

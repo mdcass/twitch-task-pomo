@@ -22,4 +22,6 @@ enum ActivityEvent: string
     case TeamCreated = 'team.created';
     case UserCreated = 'user.created';
     case UserUpdated = 'user.updated';
+    case WidgetCreated = 'widget.created';
+    case WidgetUpdated = 'widget.updated';
 }

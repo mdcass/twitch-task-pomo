@@ -11,6 +11,13 @@ This repository is a Laravel-first streaming overlay application for Twitch prod
 - Ignore unrelated local changes and do not clean up work you did not author.
 - Re-check logic and tests after editing when appropriate.
 
+# UI Controller Strategy
+
+- Authenticated app-shell UI controllers should stay thin and resource-shaped.
+- For app-shell UI, controllers should authorize, resolve route models, and return the Blade shell only; page state, queries, filters, and mutations should live in embedded Livewire components.
+- Do not introduce full-page Livewire routes for authenticated product UI; mount Livewire inside the app shell instead.
+- Workflow or OAuth handshakes, public overlay delivery, and local or testing-only tooling may use separate thin controllers outside the app-shell UI rule.
+
 # Documentation Hygiene
 
 - `docs/PRD.md` is the product source of truth for requirements and phase scope.

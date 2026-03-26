@@ -58,18 +58,52 @@ Additional audience users are viewers who want to stay aligned with the streamer
 
 ### 6.1 Overlay Widgets
 
-Initial widgets:
+Initial proprietary widget types:
 
 - Pomodoro timer
 - Task list
+- Follower Goal
+- Spotify Now Playing
 
-Initial widget requirements:
+Proprietary widget architecture requirements:
 
-- Positioning
-- Resizing
-- Visibility toggles
-- Composer compatibility
-- Theme hooks for later visual expansion
+- Proprietary widgets should be durable team-owned definitions managed through the `Widgets` area
+- Canvas placement should be separate from widget definition so the same widget can appear on multiple canvases with different placement
+- Remote URL embeds should remain canvas-scoped advanced placements rather than reusable entries in the top-level `Widgets` library
+- Widget configuration schemas should be code-owned and versioned rather than stored as database-authored schemas
+- Proprietary widgets should remain curated and product-defined in MVP; no end-user widget builder or scripting surface is required
+- Proprietary widgets should support both standalone browser-source delivery and canvas placement through the same underlying architecture
+- The temporary `built-in` widget concept should not survive beyond early implementation
+
+Widget management UX requirements:
+
+- `Widgets` should be a top-level navigation area and the primary library-management surface for proprietary widgets
+- The `Widgets` index should support creation, search and filtering, and should show widget type, current health, last updated time, canvas usage count, and standalone URL state
+- Creating a widget should start by choosing a widget type, creating a widget with defaults and an immediately resolved health state, and then redirecting immediately to the widget edit page
+- The canonical widget edit page should be a single-page editor that combines configuration, live preview, publication controls, provider and runtime status, and advanced actions such as reset, archive, and signed-URL regeneration, using one shared shell with type-resolved panels
+- Widget config edited from a canvas page in v1 should mutate the shared widget definition, and the UI should make that shared scope explicit
+- Canvas-side widget editing should use a shared-config offcanvas that may edit shared config and appearance; publish controls, provider initiation, repair flows, archive actions, and destructive actions belong on the full widget page
+- Canvas add-widget flows should support both attaching an existing shared widget and quick-creating a new shared widget before attaching it
+- Widget lifecycle states should distinguish at least `ready`, `pending connection`, `broken`, and `archived`; any retained `draft` state is internal-only and should not be part of the normal user-facing lifecycle
+- Widget lifecycle or health state should remain separate from standalone URL state
+
+Provider and integration UX requirements:
+
+- Widgets that depend on Twitch, Spotify, or later providers should remain attachable and editable even while the required provider connection is missing
+- A widget should not enter a `ready` state unless the required provider connection and scopes are currently valid for that widget type
+- The widget edit page should expose inline connect, reconnect, and repair actions for required providers
+- Provider status may be shown from the canvas editor, but provider initiation and repair should route the user to the canonical widget edit page instead of starting from the canvas
+- The product should include a central `Integrations` management page accessible from the account area for Twitch and Spotify-style provider connections
+- The `Integrations` page should show provider health, usage counts, and drill-in access to the widgets depending on a given integration
+- In v1, provider credentials remain user-owned end to end, and provider-gated widget management is owner-only
+- Quick-create from a canvas should still allow provider-gated widgets that are not yet ready to render, but blocked widgets should link the owner to the canonical widget edit page for connect or repair
+
+Workflow orchestration requirements:
+
+- Any widget or integration flow that spans multiple requests, leaves the current page, or must safely resume later should be orchestrated through the proprietary persisted workflow system rather than ad hoc redirect, query-string, or session glue
+- This requirement should cover provider authorization and repair from widget management, signed widget URL regeneration or rotation, archive confirmations that need resumable state, and later widget setup wizards
+- Workflow-backed widget and integration flows should persist team context, acting user, subject widget or integration, intended return location, and guard-failure context through `workflow_stores`
+- Single-request inline widget edits that do not need resumable state may remain ordinary Livewire form interactions
 
 The task-list experience should be designed so it can evolve toward backlog and focus flows inspired by Super Sweet Bot without requiring a separate noisy indicator widget in the first release.
 
@@ -91,6 +125,45 @@ Task list presentation and limits:
 - Overflow should scroll rather than paginate or truncate
 - Tasks should be grouped by status and then preserve insertion order within that grouping
 - The submitting viewer's Twitch username should be displayed alongside the task
+
+Standalone widget surfaces:
+
+- Proprietary widgets should live under a `Widgets` navigation area distinct from `Canvases`
+- The `Widgets` navigation area should manage proprietary widgets only; remote URL embeds remain canvas-scoped advanced placements
+- Standalone widget delivery should use durable signed URLs with owner-driven regeneration, matching the overlay security posture already used for canvases
+- The same proprietary widget should be placeable onto canvases through placement records rather than duplicated configuration
+
+Shared proprietary widget behavior:
+
+- Canvas pages may edit the shared widget definition in v1 in addition to placement-level configuration
+- Placement changes remain canvas-specific, while widget config changes affect every placement of that widget
+- Widget-specific runtime or projection state should remain outside the generic durable widget table when the data is type-specific
+- Widget archiving should be the default removal path in v1 rather than destructive delete so shared placements can remain intact while standalone URL output and runtime rendering are disabled in a controlled way
+
+Follower Goal requirements:
+
+- Follower Goal is a proprietary widget type inside the shared widget architecture rather than a dedicated standalone-only domain
+- The widget should remain text-only and render the configured title plus simple count text
+- Configuration should include `title`, `goal_target`, `end_date`, and `sound_preset`
+- The edit page should show the configuration form alongside a live preview surface
+- The edit-page preview should stay muted by default while still allowing an explicit sound test action
+- Published widget runtimes should receive live updates through the same Echo-based realtime model used by the overlay surfaces
+- Per-runtime sound duplication is acceptable in early phases if the same widget is open in multiple browser contexts
+- Widget tallying should count follow events during the widget's active campaign window rather than deriving progress from the broadcaster's absolute follower total
+- If the widget is created before Twitch broadcaster auth and subscription health are ready, it should remain pending and activate automatically when Twitch becomes ready
+- Starting Twitch authorization or repair from a Follower Goal widget should use a persisted workflow and should return the owner to that widget edit page on callback
+- Normal edits should preserve the current tally, while reset remains an explicit owner action
+- Once the configured end date passes, the widget should freeze its final tally until it is reset or otherwise reconfigured
+- When widget state changes, the application should reconcile whether the owning `Stream` still needs a `channel.follow` subscription and should delete unused subscriptions rather than leaving them running indefinitely
+- If Twitch disables a still-desired follower subscription, the product should surface a recoverable broken state and attempt bounded automatic recovery through the normal reconcile path in production-like environments
+- If prioritized before the broader Twitch bot runtime, this feature may pull forward a narrow webhook-based Twitch ingestion slice for follower events without pulling the rest of the bot-command system forward
+
+Spotify Now Playing requirements:
+
+- Spotify Now Playing should be treated as a formal proprietary widget type rather than a long-term local/testing seam
+- Spotify-specific provider and playback concerns should remain type-owned within the shared widget architecture rather than becoming a special widget system outside it
+- Starting Spotify authorization or repair from a widget-management surface should use a persisted workflow and should return the owner to the originating widget edit page on callback
+- The existing local Spotify seam should be removed once the formal Spotify widget path is implemented
 
 ### 6.2 Overlay Composer
 
@@ -169,7 +242,7 @@ Implementation expectations:
 Bot transport and command behavior:
 
 - The product should use a single application-level bot identity
-- Inbound chat should use EventSub WebSocket delivery
+- Inbound Twitch events should use EventSub webhook delivery in early phases, with transport-specific intake persisting deliveries before normalized asynchronous processing so later alternate transports can share the same downstream handlers
 - Outbound bot messages should use the Helix Send Chat Message API
 - Bot commands should use a fixed `!` prefix with aliases and no per-streamer prefix customization
 - `!task` without an argument should show help rather than infer behavior
@@ -184,6 +257,8 @@ Bot transport and command behavior:
 - The Twitch runtime model should distinguish between a durable team-owned broadcaster/channel record and a per-broadcast `StreamSession` record so live command handling, task state, viewer timer state, and metering all attach to the same stream-session boundary
 - Twitch broadcaster auth should be stored in a dedicated encrypted provider-auth model rather than directly on the `users` table, while application-level Twitch tokens should live in a separate token store
 - EventSub subscription creation and refresh should be persisted and job-driven so stale or expired subscriptions can be detected and recreated
+- Normalized Twitch event processing should remain reusable across widgets, bot features, and later runtime consumers so feature code does not duplicate webhook verification or subscription-lifecycle logic
+- Subscription deletion should be demand-driven from desired feature state so Twitch subscriptions are removed when no current consumer still requires them
 
 ### 6.4 Viewer Timer Sync
 
@@ -322,7 +397,7 @@ Initial authentication assumptions:
 Authentication and onboarding defaults:
 
 - Social onboarding should capture privacy-policy and terms acceptance before redirecting to an external provider and should complete account creation only after a successful callback
-- Twitch sign-in should start with the minimum identity and email scopes needed for authentication, then request broader broadcaster scopes only when streamer onboarding reaches bot and EventSub setup
+- Twitch sign-in should start with the minimum identity and email scopes needed for authentication, then request broader broadcaster scopes only when streamer onboarding reaches EventSub-backed setup such as bot runtime or follower-goal widget activation
 - Discord authentication should request only the minimum identity and email scopes needed for Phase 1 account access
 - Viewer authentication should request only the minimum scopes required for viewer functionality
 - If a viewer later adds a streamer-oriented profile, they should re-authenticate to grant the broader streamer scope set
@@ -347,6 +422,7 @@ External identity and account-linking rules:
 - `provider_auths` should enforce global uniqueness on `(provider, provider_user_id)` while allowing multiple records for the same provider to belong to one user
 - Third-party tokens must not be stored on `users`
 - Tokens should be retained only when an ongoing provider capability requires them; login-only provider links may leave token fields null or clear them after use
+- Broadcaster-capability upgrades such as follower-event subscriptions should extend the existing Twitch provider-auth record through explicit re-authorization rather than creating a parallel broadcaster identity model
 - When a provider callback matches an existing `(provider, provider_user_id)` record, the application should log in the linked user and refresh the stored provider metadata and tokens as appropriate
 - When a provider callback does not match an existing provider-auth record, registration should continue through the Fortify-backed user-creation path and attach the provider-auth record during onboarding completion
 - If a provider does not supply an email address, the onboarding flow should collect a local email address and require application-managed email verification before the account is fully activated
@@ -459,13 +535,15 @@ Workflow engine decision:
 - Livewire modals should default to the shared modal component rather than each feature inventing its own browser event and Bootstrap wiring
 - Guard failures should be recorded as part of workflow history with context so user-facing validation failures and operator debugging share the same transition record
 - Initial first-party uses should include streamer onboarding, viewer onboarding, composer creation/editing wizards where applicable, bot setup, and signed overlay URL regeneration or rotation flows
+- Initial first-party widget-management uses should include provider authorization and repair, signed widget URL regeneration or rotation, archive or other resumable confirmation flows, and any widget setup flows that cross requests or redirects
+- Single-request widget edits and canvas-side shared-config updates may remain ordinary Livewire actions when they do not need resumable workflow state
 - Initial first-party modal uses should include moderator actions, streamer confirmation flows, and other privileged UI interactions that need consistent Bootstrap and Livewire behavior
 - The application should not introduce a second workflow or state-machine library for these server-driven flows unless the imported system proves insufficient in a later phase
 - The imported workflow system should remain copied in this codebase long term; no package extraction work is currently required
 
 Twitch runtime architecture decision:
 
-- Architectural patterns from `~/Projects/cassly` should guide the Twitch integration where they fit this product, especially the separation of auth, channel identity, live session state, job boundaries, and long-running process management
+- Architectural patterns from `~/Projects/cassly` should guide the Twitch integration where they fit this product, especially the separation of auth, channel identity, live session state, and job boundaries
 - User-granted external provider access should live in a dedicated encrypted provider-auth model with provider enum, provider user ID, optional provider-email snapshot, profile metadata, token metadata, and explicit expiry and revocation handling
 - The provider enum should conceptually cover `local`, `twitch`, `discord`, and future `youtube`, while only Twitch and Discord need external-provider implementation in the early phases
 - Application-level provider tokens should live in a separate token model or service boundary and should not be conflated with user-granted provider-auth records
@@ -473,8 +551,10 @@ Twitch runtime architecture decision:
 - A durable team-owned `Stream` record should represent the authenticated broadcaster/channel context for the product
 - Each time the streamer goes live, the system should create a `StreamSession` record that owns the ephemeral runtime state for that broadcast, including task items, Pomodoro state, viewer timer state, inbound command history, heartbeats, and reconciliation metadata
 - EventSub subscription creation should run through queue jobs and persist subscription state so stale subscriptions can be refreshed instead of recreated blindly
-- A supervisor-managed manager command should maintain exactly one Twitch listener worker per durable broadcaster connection boundary, following the `cassly` pattern of a long-running manager that spawns dedicated workers
-- Connection handling should follow a circuit-breaker style policy with failure counts, next-retry timestamps, explicit disabled/error states, and persisted connection logs for operator visibility
+- Early Twitch ingress should prefer webhook delivery that verifies callbacks, persists raw deliveries, responds quickly, and hands off normalized events to asynchronous processors
+- Subscription and callback health handling should follow a circuit-breaker style policy with failure counts, next-retry timestamps, explicit disabled or error states, and persisted connection or delivery logs for operator visibility
+- If Twitch revokes a subscription that is still required by current desired state, the application should attempt bounded automatic recovery through reconcile in production-like environments while preserving the revoke reason and degraded status for operator visibility
+- Local and testing environments may default to quarantining revoked subscriptions until an explicit reconcile is requested so broken tunnels and stopped queues do not create endless recreate loops
 
 Recommendation on `Stream` model responsibility:
 
@@ -485,14 +565,12 @@ Recommendation on `Stream` model responsibility:
 - This split is recommended because it keeps Team focused on application ownership while giving Twitch-specific runtime concerns a stable attachment point
 - If the product permanently remains one broadcaster per streamer-oriented team and no channel-specific runtime or historical needs survive implementation, the model could later be folded inward, but the current recommendation is to keep `Stream`
 
-Worker boundary recommendation:
+Ingress boundary recommendation:
 
-- The recommended durable worker boundary is one listener worker per `Stream` or broadcaster auth connection
-- This matches the EventSub and broadcaster-auth lifecycle better than a Team-scoped worker and avoids conflating ownership with transport concerns
-- This boundary also works for offline testing and pre-live setup because the worker can exist before a specific `StreamSession` is active
-- `StreamSession` should remain the runtime data boundary and may still have per-session queue jobs, but it should not be the primary long-lived listener process boundary
-- A Team-scoped worker is acceptable only while the product is strictly one-stream-per-team, but it creates needless coupling
-- A `StreamSession`-scoped worker is acceptable only for short-lived processors after events are persisted and should not be the main EventSub listener lifecycle
+- The recommended durable Twitch ingress boundary is a stateless webhook intake attached to a durable `Stream` context plus queue-driven processors after events are persisted
+- `StreamSession` should remain the runtime data boundary and may still have per-session queue jobs, but it should not become the transport-ingestion boundary
+- A Team-scoped ingress boundary is acceptable only while the product is strictly one-stream-per-team, but it creates needless coupling
+- Future alternate transports such as EventSub WebSockets may still be added later, but they should feed the same normalized event-processing boundary instead of introducing parallel feature-specific pipelines
 
 Infrastructure and deployment defaults:
 
@@ -528,7 +606,7 @@ Realtime implementation notes:
 - Overlay and timer clients should automatically reconnect when the realtime connection drops using exponential backoff with jitter
 - After reconnect, clients should perform a full state reload rather than attempt incremental catch-up in early phases
 - A dedicated health check or status surface should exist for overlay delivery and bot connectivity monitoring
-- Twitch listener workers should emit persisted connection and subscription logs so operator and debugging surfaces can diagnose broken EventSub delivery without reading raw process logs
+- Twitch webhook ingestion, delivery retries, and subscription state should emit persisted logs so operator and debugging surfaces can diagnose broken EventSub delivery without reading raw process logs
 
 ### 7.4 Security and Audit
 
@@ -715,9 +793,9 @@ Import the shared interaction primitives early so step-based flows and auditabil
 
 Deliver the first internal end-to-end overlay prototype without depending on live Twitch transport.
 
-- `BP-TASK-P1-20` DONE Implement the Phase 1 schema and model skeletons for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions`.
+- `BP-TASK-P1-20` DONE Implement the initial Phase 1 schema and model skeletons for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions`.
 - `BP-TASK-P1-21` DONE Add factories and test helpers for teams, streams, canvases, tasks, and Pomodoro session setup.
-- `BP-TASK-P1-22` DONE Build local-only testing widgets for a list of tasks and a pomodoro widget which can be used in future canvas testing.
+- `BP-TASK-P1-22` DONE Build an initial local-only testing seam for task-list and pomodoro widgets to support early canvas testing. This temporary seam was later removed once signed overlay/widget previews became the canonical path.
 - `BP-TASK-P1-23` DONE Build the canvas creation and general CRUD flow. 
 - `BP-TASK-P1-23A` DONE Build the first composer workspace interactions for canvases, including widget add, move, resize, and visibility management on the editor surface.
 - `BP-TASK-P1-24` Implement a single-canvas overlay render path driven by synthetic stream-session state.
@@ -749,6 +827,8 @@ Turn the internal canvas prototype into a secure single-browser-source product t
 
 - `BP-TASK-P2-01` DONE Implement drag-and-drop composer editing on canvas-dimension-driven artboards with persisted position, size, and z-index.
 - `BP-TASK-P2-02` Add numeric form fallback controls for widget position, size, visibility, and stacking order.
+- `BP-TASK-P2-02A` Replace the temporary built-in widget model with generalized proprietary `widgets` plus `canvas_widgets` placement records.
+- `BP-TASK-P2-02B` Introduce the code-owned widget-definition registry and move Pomodoro, Task List, Follower Goal, and Spotify Now Playing onto it.
 - `BP-TASK-P2-03` Implement signed `/overlay/{canvas_uuid}` delivery routes with durable signatures and owner-driven regeneration.
 - `BP-TASK-P2-04` Add preview mode and wireframe overlap warnings for intersecting widgets in the editor.
 - `BP-TASK-P2-04A` Add remote-widget preview re-check controls so stored iframe preflight status can be refreshed after external embed headers or availability change.
@@ -760,7 +840,7 @@ Connect the product to Twitch so live chat events drive task and Pomodoro state 
 
 - `BP-TASK-P2-06` Expand streamer Twitch authorization scopes to cover broadcaster bot and EventSub runtime requirements.
 - `BP-TASK-P2-07` Implement `twitch_subscriptions` persistence plus queued create, refresh, and recovery jobs.
-- `BP-TASK-P2-08` Build EventSub WebSocket ingestion into `bot_command_events` with short-batch queued processing.
+- `BP-TASK-P2-08` Build EventSub webhook ingestion with raw-delivery persistence, normalized event processing, and short-batch queued command handling.
 - `BP-TASK-P2-09` Implement the first command set for `!task`, `!done`, `!remove`, `!edit`, `!check`, `!clear`, `!cleardone`, `!adel`, and core Pomodoro commands.
 - `BP-TASK-P2-10` Route command feedback to overlay state by default and gate offline runtime testing behind streamer-only test mode.
 
@@ -782,6 +862,7 @@ Add the visibility, admin tooling, and documentation needed to operate the early
 - `BP-TASK-P2-17` Configure Horizon and Pulse and/or Telescope for queue monitoring and runtime diagnostics.
 - `BP-TASK-P2-18` Build searchable support views for connection logs, command history, and activity timelines.
 - `BP-TASK-P2-19` Write operator runbooks for Twitch auth recovery, signed URL regeneration, and reconciliation incident handling.
+- `BP-TASK-P2-19A` Add CLI-first Twitch subscription reconcile and cleanup commands for operators and local development.
 - `BP-TASK-P2-20` Add end-to-end smoke coverage for signed delivery, command ingestion, and metering behavior.
 
 ### Phase 3: Public Beta
@@ -901,7 +982,7 @@ Prepare the platform to operate reliably under production load and security expe
 - `BP-TASK-P4-05` Load-test overlay delivery, Echo reconnects, and queued Twitch processing at projected production concurrency.
 - `BP-TASK-P4-06` Enforce production security controls for signed routes, CSP, token redaction, and activity-log archival.
 - `BP-TASK-P4-07` Move deployment and worker topology beyond the initial single-server assumption with separated runtime concerns.
-- `BP-TASK-P4-08` Run production-readiness exercises for Twitch outages, queue backlog, websocket loss, and high-usage recovery.
+- `BP-TASK-P4-08` Run production-readiness exercises for Twitch outages, queue backlog, webhook delivery failures, and high-usage recovery.
 
 #### `BP-EPIC-P4-03` Launch readiness, support operations, and post-launch widget expansion
 
@@ -1018,7 +1099,7 @@ Recommended execution order:
 4. Import the shared workflow engine and shared modal primitive before building onboarding, setup, or rotation flows so persisted workflow state becomes the default path from the start.
 5. Implement the durable Twitch domain layer first: provider auth storage, app token storage, `Stream`, `StreamSession`, subscription persistence, and queue/job boundaries.
 6. Deliver an internal vertical slice with a basic dashboard shell, one canvas, signed overlay delivery, task widget, Pomodoro widget, and a developer testing panel using synthetic session state.
-7. Add live Twitch EventSub ingestion, queued command handling, and session reconciliation only after the local vertical slice is stable.
+7. Add live Twitch EventSub ingestion, queued command handling, and session reconciliation only after the local vertical slice is stable, except where a deliberately narrow follower-goal slice pulls forward webhook-based follower-event ingestion without pulling the broader bot runtime forward.
 
 Documentation for this sequencing should stay split by concern:
 

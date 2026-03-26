@@ -79,9 +79,10 @@ class RemoteWidgetUrlGuard
             return [];
         }
 
-        return array_values(array_filter(array_map(static function (array $record): ?string {
-            return Arr::get($record, 'ip') ?? Arr::get($record, 'ipv6');
-        }, $records)));
+        return array_values(array_filter(array_map(
+            static fn (array $record): ?string => Arr::get($record, 'ip') ?? Arr::get($record, 'ipv6'),
+            $records,
+        )));
     }
 
     private function isProtectedApplicationHost(string $host): bool

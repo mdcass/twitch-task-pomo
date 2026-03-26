@@ -829,6 +829,60 @@ class SocialAuthenticationTest extends TestCase
         $this->assertSame('register', $activity->getExtraProperty('flow'));
     }
 
+    public function test_socialite_callback_without_an_access_token_fails_cleanly_for_register_flow(): void
+    {
+        $store = $this->createHandshakeWorkflowStore([
+            'provider' => 'discord',
+            'flow' => OauthFlow::Register->value,
+        ]);
+
+        session()->put('workflow_store_id.'.SocialAuthHandshakeWorkflow::class, $store->id);
+
+        $driver = $this->mockDriver('discord');
+        $driver->shouldReceive('setScopes')->once()->with(['identify', 'email'])->andReturnSelf();
+        $driver->shouldReceive('withConsent')->once()->andReturnSelf();
+        $driver->shouldReceive('user')->once()->andReturn($this->socialiteUser([
+            'id' => 'discord-user-123',
+            'name' => 'Discord User',
+            'nickname' => 'Discord User#1234',
+            'email' => 'discord@example.test',
+            'avatar' => 'https://cdn.example.test/avatars/new-discord.png',
+            'token' => null,
+            'refreshToken' => 'new-discord-refresh',
+            'expiresIn' => 7200,
+            'approvedScopes' => ['identify', 'email'],
+            'raw' => [
+                'id' => 'discord-user-123',
+                'username' => 'Discord User',
+                'email' => 'discord@example.test',
+            ],
+        ]));
+
+        $response = $this->from('/register')->get('/oauth/callback/discord?code=test-code&state=test-state');
+
+        $response->assertRedirect(route('register', absolute: false));
+        $response->assertSessionHasErrors([
+            'social' => 'We could not complete your Discord sign-in. Please try again.',
+        ]);
+        $this->assertDatabaseCount('provider_auths', 0);
+        $this->assertNull(session('workflow_store_id.'.SocialAuthHandshakeWorkflow::class));
+
+        $store->refresh();
+        $workflow = $store->workflow();
+
+        $this->assertSame('closed', $store->status->value);
+        $this->assertInstanceOf(SocialAuthHandshakeWorkflow::class, $workflow);
+        $this->assertTrue($workflow->isState('callback_failed'));
+
+        $activity = Activity::query()
+            ->where('event', ActivityEvent::AuthSocialCallbackFailed->value)
+            ->sole();
+
+        $this->assertSame('oauth/callback/discord', $activity->getExtraProperty('request_path'));
+        $this->assertSame('missing_access_token', $activity->getExtraProperty('reason'));
+        $this->assertSame('register', $activity->getExtraProperty('flow'));
+    }
+
     public function test_base_test_case_prevents_unmocked_http_requests(): void
     {
         $this->expectException(StrayRequestException::class);

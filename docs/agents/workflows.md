@@ -49,7 +49,7 @@ If a task changes social onboarding or guest workflow handoff behavior, start wi
 
 - `app/Workflows/Auth/SocialAuthHandshakeWorkflow.php`
 - `app/Workflows/Auth/SocialRegistrationWorkflow.php`
-- `app/Actions/Auth/SocialAuthService.php`
+- `app/Services/Auth/SocialAuthService.php`
 - `app/Livewire/Auth/SocialRegistrationEmailForm.php`
 - `resources/views/livewire/auth/social-registration-email-form.blade.php`
 

@@ -91,6 +91,19 @@ class AuthPersistenceTest extends TestCase
         ]);
     }
 
+    public function test_provider_auths_require_access_tokens(): void
+    {
+        $user = User::factory()->create();
+
+        $this->expectException(QueryException::class);
+
+        $user->providerAuths()->create([
+            'provider' => ExternalAuthProvider::Twitch,
+            'provider_user_id' => '27463794',
+            'access_token' => null,
+        ]);
+    }
+
     public function test_user_settings_persist_current_legal_acceptance_and_history_in_one_row(): void
     {
         $user = User::factory()->create();

@@ -30,6 +30,16 @@ Read this file before changing tenancy boundaries, authorization, model behavior
 - Put model-rooted behavior on models or model concerns when the logic depends on model state and relationships.
 - Keep controllers, jobs, commands, and Livewire components thin.
 - Avoid spreading core branching logic across multiple entry points.
+- When one aggregate owns several simple state transitions or relationship-rooted writes, prefer explicit model verbs over one thin action class per verb.
+- Use actions for validated command wrappers when the write path needs a dedicated payload contract, or when the command coordinates more than one aggregate boundary.
+- Use services for external-system work, workflow progression, or other orchestration that should not live on the aggregate itself.
+
+### Widget Persistence Boundaries
+
+- `Widget` is the durable root for shared widget ownership, config, appearance, lifecycle, and publication state.
+- Keep widget-type-specific config in `widgets.config` or `widgets.appearance` when it is edited only through normal widget management flows.
+- Introduce a dedicated widget child state table only when the data mutates independently of editor saves, must survive normal config edits or resets independently, or needs its own query or reconciliation boundary.
+- Prefer strict one-to-one typed child tables over a generic widget-state blob when type-specific operational state is required.
 
 ### Authorization Boundaries
 
@@ -39,8 +49,10 @@ Read this file before changing tenancy boundaries, authorization, model behavior
 
 ### Validation Source Of Truth
 
-- Persisted model validation should live in the action or a small, action-local helper when multiple actions share the same payload rules.
+- Persisted write validation should live at the validated command boundary, usually an action or a small, action-local helper when multiple commands share the same payload rules.
+- When an aggregate method is the primary write entrypoint, validate defensively at the boundary that calls it rather than introducing a thin action only to hold duplicate rules.
 - Actions and services must still validate defensively before writes, even when an upstream UI entry point has already validated the same payload.
+- Keep `app/Actions/` reserved for command-style write paths and action-local validation; place service or orchestration classes under `app/Services/` by domain.
 - Livewire components should keep editable input scoped under one `$fields` array and use native component validation on `fields.*` keys instead of manually catching and remapping validation exceptions.
 - Prefer the simplest validation structure that keeps the write path readable; do not introduce repo-wide validation abstractions unless there is clear repeated pressure for them.
 
@@ -62,7 +74,8 @@ Read this file before changing tenancy boundaries, authorization, model behavior
 
 - `app/Models/`: tenancy roots and domain relationships
 - `app/Policies/`: authorization boundaries
-- `app/Actions/`: write paths and shared validation
+- `app/Actions/`: command-style write paths and shared validation
+- `app/Services/`: service and orchestration classes organized by domain
 - `app/Events/`: application events
 - `app/Workflows/`: resumable state machines where workflow-backed behavior is appropriate
 

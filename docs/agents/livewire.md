@@ -9,7 +9,9 @@ Read this file before changing `app/Livewire/`, Livewire-backed views under `res
 ### Component Shape
 
 - Livewire 3 is the default interactive layer for authenticated UI.
-- Keep components thin. Mutation, validation, and domain branching should converge in actions or services.
+- Livewire should be mounted inside Blade app-shell views for authenticated product pages rather than used as a full-page route target.
+- Treat app-shell controllers as the routing and shell boundary; treat Livewire components as the page-behavior boundary.
+- Keep components thin. Aggregate-local mutations should call model or model-concern entrypoints, while validated commands and cross-aggregate or external orchestration should converge in actions or services.
 - Prefer typed scalar state and small arrays over storing models directly in mutable public properties.
 - Use computed properties when a value is derived from current state or relationships rather than passing everything through `render()`.
 

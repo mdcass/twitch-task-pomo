@@ -2,19 +2,26 @@
 
 namespace App\Enums\Models;
 
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Route;
+use App\Support\Widgets\Definitions\FollowerGoalWidgetDefinition;
+use App\Support\Widgets\Definitions\PomodoroWidgetDefinition;
+use App\Support\Widgets\Definitions\SpotifyNowPlayingWidgetDefinition;
+use App\Support\Widgets\Definitions\TaskListWidgetDefinition;
+use App\Support\Widgets\WidgetDefinition;
 
 enum WidgetType: string
 {
     case Pomodoro = 'pomodoro';
     case TaskList = 'task_list';
+    case FollowerGoal = 'follower_goal';
+    case SpotifyNowPlaying = 'spotify_now_playing';
 
     public function label(): string
     {
         return match ($this) {
             self::Pomodoro => 'Pomodoro Timer',
             self::TaskList => 'Task List',
+            self::FollowerGoal => 'Follower Goal',
+            self::SpotifyNowPlaying => 'Spotify Now Playing',
         };
     }
 
@@ -23,31 +30,21 @@ enum WidgetType: string
         return $this->label();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function defaultSettings(): array
+    public function definition(): WidgetDefinition
     {
-        return match ($this) {
-            self::TaskList => [
-                'title' => 'Focus Queue',
-                'pending' => ['Plan stream outline', 'Refine camera framing'],
-                'completed' => ['Warm up intro scene'],
-            ],
-            self::Pomodoro => [
-                'title' => 'Deep Work Sprint',
-                'state' => 'focus',
-                'focus_minutes' => 25,
-                'break_minutes' => 5,
-            ],
-        };
+        return app($this->definitionClass());
     }
 
-    public function previewUrl(array $settings = []): ?string
+    /**
+     * @return class-string<WidgetDefinition>
+     */
+    private function definitionClass(): string
     {
         return match ($this) {
-            self::TaskList => $this->taskListPreviewUrl($settings),
-            self::Pomodoro => $this->pomodoroPreviewUrl($settings),
+            self::Pomodoro => PomodoroWidgetDefinition::class,
+            self::TaskList => TaskListWidgetDefinition::class,
+            self::FollowerGoal => FollowerGoalWidgetDefinition::class,
+            self::SpotifyNowPlaying => SpotifyNowPlayingWidgetDefinition::class,
         };
     }
 
@@ -60,34 +57,5 @@ enum WidgetType: string
             static fn (self $type): string => $type->value,
             self::cases(),
         );
-    }
-
-    private function taskListPreviewUrl(array $settings): ?string
-    {
-        if (! Route::has('local.widgets.task-list')) {
-            return null;
-        }
-
-        return route('local.widgets.task-list', [
-            'title' => $settings['title'] ?? 'Focus Queue',
-            'pending' => $settings['pending'] ?? ['Plan stream outline', 'Refine camera framing'],
-            'completed' => $settings['completed'] ?? ['Warm up intro scene'],
-        ], false);
-    }
-
-    private function pomodoroPreviewUrl(array $settings): ?string
-    {
-        if (! Route::has('local.widgets.pomodoro')) {
-            return null;
-        }
-
-        return route('local.widgets.pomodoro', [
-            'title' => $settings['title'] ?? 'Deep Work Sprint',
-            'state' => $settings['state'] ?? 'focus',
-            'focus_minutes' => $settings['focus_minutes'] ?? 25,
-            'break_minutes' => $settings['break_minutes'] ?? 5,
-            'ends_at' => $settings['ends_at'] ?? Carbon::now()->seconds(0)->addMinutes(25)->toIso8601String(),
-            'remaining_seconds' => $settings['remaining_seconds'] ?? null,
-        ], false);
     }
 }

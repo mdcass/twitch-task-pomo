@@ -45,7 +45,7 @@ class CompleteSocialRegistration
      *     provider_user_id:string,
      *     provider_email:?string,
      *     avatar_url:?string,
-     *     access_token:?string,
+     *     access_token:string,
      *     refresh_token:?string,
      *     expires_in:?int,
      *     scopes?:list<string>,
@@ -67,7 +67,7 @@ class CompleteSocialRegistration
             'provider_user_id' => ['required', 'string', 'max:255'],
             'provider_email' => ['nullable', 'string', 'email', 'max:255'],
             'avatar_url' => ['nullable', 'string', 'url', 'starts_with:https://'],
-            'access_token' => ['nullable', 'string'],
+            'access_token' => ['required', 'string'],
             'refresh_token' => ['nullable', 'string'],
             'expires_in' => ['nullable', 'integer', 'min:0'],
             'scopes' => ['sometimes', 'array'],
@@ -79,6 +79,12 @@ class CompleteSocialRegistration
         if ($this->emailBelongsToExistingUser($validated['email'])) {
             throw ValidationException::withMessages([
                 'email' => 'That email already belongs to an existing account.',
+            ]);
+        }
+
+        if (trim($validated['access_token']) === '') {
+            throw ValidationException::withMessages([
+                'access_token' => 'A provider access token is required to complete registration.',
             ]);
         }
 

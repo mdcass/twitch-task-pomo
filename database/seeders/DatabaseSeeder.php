@@ -4,9 +4,9 @@ namespace Database\Seeders;
 
 use App\Enums\Models\WidgetPreviewStatus;
 use App\Enums\Models\WidgetSourceKind;
-use App\Enums\Models\WidgetType;
 use App\Models\Canvas;
 use App\Models\User;
+use App\Models\Widget;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -29,11 +29,17 @@ class DatabaseSeeder extends Seeder
             'name' => 'My canvas',
         ]);
 
+        $taskList = Widget::factory()->taskList()->create([
+            'team_id' => $user->currentTeam->id,
+            'created_by_user_id' => $user->id,
+            'name' => 'Task List',
+        ]);
+
         $canvas->widgetInstances()->create([
             'team_id' => $user->currentTeam->id,
-            'source_kind' => WidgetSourceKind::BuiltIn,
-            'type' => WidgetType::TaskList,
-            'name' => 'Task List',
+            'widget_id' => $taskList->id,
+            'source_kind' => WidgetSourceKind::Proprietary,
+            'name' => null,
             'position_x' => 80,
             'position_y' => 80,
             'width' => 720,
@@ -47,7 +53,6 @@ class DatabaseSeeder extends Seeder
             'z_index' => 0,
             'is_visible' => true,
             'settings' => [
-                ...WidgetType::TaskList->defaultSettings(),
                 'editor_defaults' => [
                     'frame_width' => 720,
                     'frame_height' => 560,
@@ -60,11 +65,17 @@ class DatabaseSeeder extends Seeder
             'preview_checked_at' => now(),
         ]);
 
+        $pomodoro = Widget::factory()->pomodoro()->create([
+            'team_id' => $user->currentTeam->id,
+            'created_by_user_id' => $user->id,
+            'name' => 'Pomodoro Timer',
+        ]);
+
         $canvas->widgetInstances()->create([
             'team_id' => $user->currentTeam->id,
-            'source_kind' => WidgetSourceKind::BuiltIn,
-            'type' => WidgetType::Pomodoro,
-            'name' => 'Pomodoro Timer',
+            'widget_id' => $pomodoro->id,
+            'source_kind' => WidgetSourceKind::Proprietary,
+            'name' => null,
             'position_x' => 960,
             'position_y' => 80,
             'width' => 520,
@@ -78,7 +89,6 @@ class DatabaseSeeder extends Seeder
             'z_index' => 1,
             'is_visible' => true,
             'settings' => [
-                ...WidgetType::Pomodoro->defaultSettings(),
                 'editor_defaults' => [
                     'frame_width' => 520,
                     'frame_height' => 320,
@@ -93,8 +103,8 @@ class DatabaseSeeder extends Seeder
 
         $canvas->widgetInstances()->create([
             'team_id' => $user->currentTeam->id,
+            'widget_id' => null,
             'source_kind' => WidgetSourceKind::RemoteUrl,
-            'type' => null,
             'name' => 'SE Countdown',
             'embed_url' => 'https://widgets.streamelements.com/host/67c881040dc8c01c507bc287/151d82c8-eabf-4201-a08b-2c3a9c81ca8c/S5uGiyZFmn_eA-5R4Vnu2mcM1_erUdXf9mQMXiCo9qfwQ1fW',
             'position_x' => 160,

@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Enums\ActivityEvent;
 use App\Enums\ExternalAuthProvider;
+use App\Support\Database\JsonArrayContains;
 use App\Models\Traits\LogsModelActivity;
 use Database\Factories\ProviderAuthFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -86,6 +88,57 @@ class ProviderAuth extends Model
     public function isRevoked(): bool
     {
         return $this->trashed();
+    }
+
+    /**
+     * @param  list<string>  $requiredScopes
+     */
+    public function hasRequiredScopes(array $requiredScopes): bool
+    {
+        $availableScopes = collect($this->scopes ?? [])
+            ->map(static fn (mixed $scope): string => trim((string) $scope))
+            ->filter()
+            ->unique()
+            ->values();
+
+        return collect($requiredScopes)
+            ->every(static fn (string $scope): bool => $availableScopes->contains($scope));
+    }
+
+    public function hasUsableTokenMaterial(): bool
+    {
+        return $this->token_expires_at === null
+            || $this->token_expires_at->isFuture()
+            || $this->refresh_token !== null;
+    }
+
+    public function isUsableFor(ExternalAuthProvider $provider): bool
+    {
+        return ! $this->isRevoked()
+            && $this->hasRequiredScopes($provider->authScopes())
+            && $this->hasUsableTokenMaterial();
+    }
+
+    public function scopeUsableFor(Builder $query, ExternalAuthProvider $provider): Builder
+    {
+        $query
+            ->where($this->qualifyColumn('provider'), $provider->value)
+            ->whereNull($this->qualifyColumn('deleted_at'))
+            ->whereNotNull($this->qualifyColumn('access_token'))
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNull($this->qualifyColumn('token_expires_at'))
+                    ->orWhere($this->qualifyColumn('token_expires_at'), '>', now())
+                    ->orWhereNotNull($this->qualifyColumn('refresh_token'));
+            });
+
+        app(JsonArrayContains::class)->whereContainsAll(
+            $query,
+            $this->qualifyColumn('scopes'),
+            $provider->authScopes(),
+        );
+
+        return $query;
     }
 
     protected function activityEventMap(): array

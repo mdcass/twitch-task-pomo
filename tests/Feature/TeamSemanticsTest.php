@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\TeamMemberRole;
 use App\Enums\TeamType;
+use App\Exceptions\DomainInvariantViolation;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,20 +30,30 @@ class TeamSemanticsTest extends TestCase
         $this->assertSame(TeamMemberRole::Moderator, $membership?->role);
     }
 
-    public function test_current_team_falls_back_to_the_first_owned_team_when_missing(): void
+    public function test_team_policy_allows_members_to_view_but_only_owners_to_manage_integrations(): void
+    {
+        $owner = User::factory()->withStreamerTeam()->create();
+        $moderator = User::factory()->create();
+
+        $team = $owner->currentTeam;
+        $team->users()->attach($moderator, ['role' => TeamMemberRole::Moderator->value]);
+        $moderator->switchTeam($team);
+
+        $this->assertTrue($owner->can('view', $team));
+        $this->assertTrue($owner->can('manageIntegrations', $team));
+        $this->assertTrue($moderator->can('view', $team));
+        $this->assertFalse($moderator->can('manageIntegrations', $team));
+    }
+
+    public function test_current_team_can_be_missing_when_the_foreign_key_is_cleared(): void
     {
         $user = User::factory()->withStreamerTeam()->create();
-        $team = $user->currentTeam;
 
         $user->forceFill([
             'current_team_id' => null,
         ])->save();
 
-        $resolvedCurrentTeam = $user->fresh()->currentTeam;
-
-        $this->assertNotNull($resolvedCurrentTeam);
-        $this->assertTrue($resolvedCurrentTeam->is($team));
-        $this->assertSame($team->id, $user->fresh()->current_team_id);
+        $this->assertNull($user->fresh()->currentTeam);
     }
 
     public function test_soft_deleted_teams_keep_membership_rows(): void
@@ -53,6 +64,7 @@ class TeamSemanticsTest extends TestCase
         $team = $owner->currentTeam;
         $team->users()->attach($moderator, ['role' => TeamMemberRole::Moderator->value]);
 
+        $owner->delete();
         $team->delete();
 
         $deletedTeam = Team::withTrashed()->find($team->id);
@@ -68,5 +80,14 @@ class TeamSemanticsTest extends TestCase
             'team_id' => $team->id,
             'user_id' => $moderator->id,
         ])->count());
+    }
+
+    public function test_team_deletion_is_blocked_while_any_active_user_still_points_at_it_as_current_team(): void
+    {
+        $owner = User::factory()->withStreamerTeam()->create();
+
+        $this->expectException(DomainInvariantViolation::class);
+
+        $owner->currentTeam->delete();
     }
 }

@@ -43,11 +43,11 @@ class OverlayWidgetFrameUrlFactory
         }
 
         return sha1((string) json_encode([
-            'widget_id' => $widget->id,
+                'widget_instance_id' => $widget->id,
             'source_kind' => $widget->source_kind->value,
             'type' => $widget->type?->value,
             'embed_url' => $widget->source_kind === WidgetSourceKind::RemoteUrl ? $widget->previewUrl() : null,
-            'settings' => $widget->settings ?? [],
+            'widget_id' => $widget->widget_id,
             'seed' => $previewSeed,
         ]));
     }
@@ -67,7 +67,7 @@ class OverlayWidgetFrameUrlFactory
     private function canRenderInEditor(WidgetInstance $widget): bool
     {
         return match ($widget->source_kind) {
-            WidgetSourceKind::BuiltIn => $widget->type !== null,
+            WidgetSourceKind::Proprietary => $widget->type !== null,
             WidgetSourceKind::RemoteUrl => is_string($widget->previewUrl()) && $widget->previewUrl() !== '',
         };
     }
@@ -75,7 +75,9 @@ class OverlayWidgetFrameUrlFactory
     private function canRenderInRuntime(WidgetInstance $widget): bool
     {
         return match ($widget->source_kind) {
-            WidgetSourceKind::BuiltIn => $widget->type !== null,
+            WidgetSourceKind::Proprietary => $widget->type !== null
+                && $widget->widget !== null
+                && $widget->widget->isReadyForRuntime(),
             WidgetSourceKind::RemoteUrl => is_string($widget->embed_url) && $widget->embed_url !== '',
         };
     }

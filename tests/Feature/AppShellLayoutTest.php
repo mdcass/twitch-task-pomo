@@ -175,6 +175,42 @@ class AppShellLayoutTest extends TestCase
             ->assertDontSee('class="nav-link label-1 active" href="/user/profile"', false);
     }
 
+    public function test_widgets_navigation_item_renders_for_authenticated_team_members_and_marks_active(): void
+    {
+        $owner = $this->verifiedUserWithCurrentTeam();
+        $member = User::factory()->create();
+
+        $owner->currentTeam->users()->attach($member, ['role' => 'moderator']);
+        $member->switchTeam($owner->currentTeam);
+
+        $this->actingAs($member)
+            ->get(route('widgets.index', absolute: false))
+            ->assertOk()
+            ->assertSee('class="nav-link label-1 active" href="/widgets"', false)
+            ->assertSee('>Widgets<', false);
+    }
+
+    public function test_integrations_navigation_item_is_visible_only_to_the_team_owner(): void
+    {
+        $owner = $this->verifiedUserWithCurrentTeam();
+        $member = User::factory()->create();
+
+        $owner->currentTeam->users()->attach($member, ['role' => 'moderator']);
+        $member->switchTeam($owner->currentTeam);
+
+        $this->actingAs($owner)
+            ->get('/_test/shell/vertical')
+            ->assertOk()
+            ->assertSee('href="/integrations"', false)
+            ->assertSee('>Integrations<', false);
+
+        $this->actingAs($member)
+            ->get('/_test/shell/vertical')
+            ->assertOk()
+            ->assertDontSee('href="/integrations"', false)
+            ->assertDontSee('>Integrations<', false);
+    }
+
     public function test_theme_switcher_remains_present_without_search_or_notifications(): void
     {
         $user = $this->verifiedUserWithCurrentTeam();
@@ -194,6 +230,7 @@ class AppShellLayoutTest extends TestCase
             'provider' => ExternalAuthProvider::Twitch,
             'provider_user_id' => 'twitch-provider-1',
             'avatar_url' => 'https://cdn.example.test/avatars/provider-fallback.png',
+            'access_token' => 'provider-access-token',
             'last_used_at' => now(),
         ]);
 
@@ -219,6 +256,7 @@ class AppShellLayoutTest extends TestCase
             'provider' => ExternalAuthProvider::Discord,
             'provider_user_id' => 'discord-provider-1',
             'avatar_url' => 'https://cdn.example.test/avatars/provider-fallback.png',
+            'access_token' => 'provider-access-token',
             'last_used_at' => now(),
         ]);
 
@@ -236,12 +274,14 @@ class AppShellLayoutTest extends TestCase
             'provider' => ExternalAuthProvider::Twitch,
             'provider_user_id' => 'older-provider',
             'avatar_url' => 'https://cdn.example.test/avatars/older-provider.png',
+            'access_token' => 'older-access-token',
             'last_used_at' => now()->subHour(),
         ]);
         $user->providerAuths()->create([
             'provider' => ExternalAuthProvider::Discord,
             'provider_user_id' => 'newer-provider',
             'avatar_url' => 'https://cdn.example.test/avatars/newer-provider.png',
+            'access_token' => 'newer-access-token',
             'last_used_at' => now(),
         ]);
 
@@ -262,12 +302,14 @@ class AppShellLayoutTest extends TestCase
             'provider' => ExternalAuthProvider::Twitch,
             'provider_user_id' => 'null-avatar-provider',
             'avatar_url' => null,
+            'access_token' => 'null-avatar-access-token',
             'last_used_at' => now()->subMinutes(10),
         ]);
         $revoked = $user->providerAuths()->create([
             'provider' => ExternalAuthProvider::Discord,
             'provider_user_id' => 'revoked-provider',
             'avatar_url' => 'https://cdn.example.test/avatars/revoked-provider.png',
+            'access_token' => 'revoked-access-token',
             'last_used_at' => now(),
         ]);
         $revoked->delete();

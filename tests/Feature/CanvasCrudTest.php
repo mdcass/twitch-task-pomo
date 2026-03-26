@@ -7,6 +7,8 @@ use App\Actions\Canvases\CreateCanvas;
 use App\Actions\Canvases\RestoreCanvas;
 use App\Actions\Canvases\UpdateCanvas;
 use App\Enums\ActivityEvent;
+use App\Enums\Models\WidgetPreviewStatus;
+use App\Enums\Models\WidgetSourceKind;
 use App\Enums\TeamMemberRole;
 use App\Livewire\Canvases\CanvasForm;
 use App\Livewire\Canvases\CanvasIndex;
@@ -14,6 +16,7 @@ use App\Livewire\Canvases\CanvasLifecycleModal;
 use App\Models\Activity;
 use App\Models\Canvas;
 use App\Models\User;
+use App\Models\Widget;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -49,6 +52,31 @@ class CanvasCrudTest extends TestCase
 
         $this->assertTrue($owner->can('restore', $canvas->fresh()));
         $this->assertFalse($member->can('restore', $canvas->fresh()));
+    }
+
+    public function test_canvas_attach_widget_policy_requires_canvas_update_access_and_a_same_team_widget(): void
+    {
+        $owner = User::factory()->withStreamerTeam()->create();
+        $member = User::factory()->create();
+        $foreignOwner = User::factory()->withStreamerTeam()->create();
+        $canvas = Canvas::factory()->for($owner->currentTeam)->create();
+        $teamWidget = Widget::factory()->forTeam($owner->currentTeam, $owner)->taskList()->create();
+        $foreignWidget = Widget::factory()->forTeam($foreignOwner->currentTeam, $foreignOwner)->taskList()->create();
+
+        $owner->currentTeam->users()->attach($member, ['role' => TeamMemberRole::Moderator->value]);
+        $member->switchTeam($owner->currentTeam);
+
+        $this->assertTrue($owner->can('attachWidget', [$canvas, $teamWidget]));
+        $this->assertFalse($member->can('attachWidget', [$canvas, $teamWidget]));
+        $this->assertFalse($owner->can('attachWidget', [$canvas, $foreignWidget]));
+    }
+
+    public function test_canvas_policy_returns_false_when_the_user_has_no_current_team(): void
+    {
+        $user = User::factory()->create();
+
+        $this->assertFalse($user->can('viewAny', Canvas::class));
+        $this->assertFalse($user->can('create', Canvas::class));
     }
 
     public function test_canvases_page_renders_and_marks_the_sidebar_item_as_active(): void
@@ -231,11 +259,15 @@ class CanvasCrudTest extends TestCase
             'width' => 1920,
             'height' => 1080,
         ]);
+        $widgetRecord = Widget::factory()->taskList()->create([
+            'team_id' => $user->currentTeam->id,
+            'created_by_user_id' => $user->id,
+        ]);
         $widget = $canvas->widgetInstances()->create([
             'team_id' => $user->currentTeam->id,
-            'source_kind' => \App\Enums\Models\WidgetSourceKind::BuiltIn,
-            'type' => \App\Enums\Models\WidgetType::TaskList,
-            'name' => 'Scaled Widget',
+            'widget_id' => $widgetRecord->id,
+            'source_kind' => WidgetSourceKind::Proprietary,
+            'name' => null,
             'position_x' => 960,
             'position_y' => 80,
             'width' => 720,
@@ -256,7 +288,7 @@ class CanvasCrudTest extends TestCase
                     'content_height' => 700,
                 ],
             ],
-            'preview_status' => \App\Enums\Models\WidgetPreviewStatus::Ready,
+            'preview_status' => WidgetPreviewStatus::Ready,
             'preview_message' => null,
             'preview_checked_at' => now(),
         ]);

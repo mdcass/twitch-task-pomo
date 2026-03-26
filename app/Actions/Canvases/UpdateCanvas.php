@@ -73,7 +73,7 @@ class UpdateCanvas
                 'crop_left' => $this->scaleValue($widget->crop_left, $scale),
             ]);
 
-            $widget->fill($normalized);
+            $widget->fill($normalized->toArray());
             $widget->settings = $this->scaledEditorDefaults(
                 $widget->settings ?? [],
                 $scale,
@@ -118,10 +118,10 @@ class UpdateCanvas
             'crop_left' => 0,
         ]);
 
-        Arr::set($settings, 'editor_defaults.frame_width', $normalized['width']);
-        Arr::set($settings, 'editor_defaults.frame_height', $normalized['height']);
-        Arr::set($settings, 'editor_defaults.content_width', $normalized['content_width']);
-        Arr::set($settings, 'editor_defaults.content_height', $normalized['content_height']);
+        Arr::set($settings, 'editor_defaults.frame_width', $normalized->width);
+        Arr::set($settings, 'editor_defaults.frame_height', $normalized->height);
+        Arr::set($settings, 'editor_defaults.content_width', $normalized->contentWidth);
+        Arr::set($settings, 'editor_defaults.content_height', $normalized->contentHeight);
 
         return $settings;
     }

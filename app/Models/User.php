@@ -11,6 +11,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -108,6 +109,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->ownedTeams()->oldest('id')->first();
     }
 
+    public function currentTeam(): BelongsTo
+    {
+        return $this->belongsTo(Team::class, 'current_team_id');
+    }
+
     /**
      * Get the role that the user has on the team.
      */
@@ -189,6 +195,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the widgets created by the user.
+     *
+     * @return HasMany<Widget, $this>
+     */
+    public function widgets(): HasMany
+    {
+        return $this->hasMany(Widget::class, 'created_by_user_id');
+    }
+
+    /**
      * Get the task items created by the user.
      *
      * @return HasMany<TaskItem, $this>
@@ -232,7 +248,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
         return $store->workflow()->isState($completionState);
     }
-
     protected function activityEventMap(): array
     {
         return [

@@ -225,14 +225,14 @@ export const createPreviewSessions = ({
 
         frame.addEventListener('error', markError, { once: true });
 
-        if (widget.previewMode === 'built_in') {
+        if (widget.previewMode === 'proprietary') {
             frame.addEventListener('load', markLoaded, { once: true });
         }
 
         session.cleanup = () => {
             frame.removeEventListener('error', markError);
 
-            if (widget.previewMode === 'built_in') {
+            if (widget.previewMode === 'proprietary') {
                 frame.removeEventListener('load', markLoaded);
             }
         };

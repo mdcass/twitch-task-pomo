@@ -25,8 +25,8 @@ class ProviderAuthFactory extends Factory
             'provider_user_id' => fake()->unique()->numerify('provider-#######'),
             'provider_email' => fake()->optional()->safeEmail(),
             'avatar_url' => 'https://cdn.example.test/avatars/'.fake()->uuid().'.png',
-            'access_token' => fake()->optional()->sha256(),
-            'refresh_token' => fake()->optional()->sha256(),
+            'access_token' => fake()->sha256(),
+            'refresh_token' => fake()->sha256(),
             'token_expires_at' => now()->addHour(),
             'scopes' => ['user:read:email'],
             'profile' => [

@@ -4,7 +4,7 @@ use App\Models\Canvas;
 use App\Models\User;
 use App\Models\WidgetInstance;
 
-it('keeps the add-widget dropdown open after adding a built-in widget and keeps the overlay iframe selected for editing', function (): void {
+it('keeps the add-widget dropdown open after quick-creating a widget and keeps the overlay iframe selected for editing', function (): void {
     $user = User::factory()->withStreamerTeam()->create([
         'email' => 'browser-composer@example.test',
     ]);
@@ -26,10 +26,10 @@ it('keeps the add-widget dropdown open after adding a built-in widget and keeps 
         ->assertSee('Layers')
         ->click('[data-widget-add]')
         ->wait(0.2)
-        ->click('Built-in placeholder')
+        ->click('Quick-create widget')
         ->wait(0.3)
         ->assertVisible('.offcanvas.show')
-        ->press('Add Widget')
+        ->click('.offcanvas.show button[type="submit"]')
         ->wait(1.2)
         ->click('[data-widget-add]')
         ->wait(0.2)
@@ -47,7 +47,7 @@ it('keeps the add-widget dropdown open after adding a built-in widget and keeps 
             true,
         )
         ->assertScript(
-            "(() => { const root = document.querySelector('[data-composer-editor]'); const frame = root?.querySelector('iframe[data-widget-preview-mode=\"built_in\"]'); return !!frame && frame.getAttribute('src')?.startsWith('http://localhost/overlay/widgets/'); })()",
+            "(() => { const root = document.querySelector('[data-composer-editor]'); const frame = root?.querySelector('iframe[data-widget-preview-mode=\"proprietary\"]'); return !!frame && frame.getAttribute('src')?.startsWith('http://localhost/overlay/widgets/'); })()",
             true,
         )
         ->assertScript(
@@ -55,7 +55,7 @@ it('keeps the add-widget dropdown open after adding a built-in widget and keeps 
             true,
         )
         ->assertScript(
-            "(() => { const root = document.querySelector('[data-composer-editor]'); const frame = root?.querySelector('iframe[data-widget-preview-mode=\"built_in\"]'); if (!frame) { return false; } window.__composerFrameReloads = 0; frame.addEventListener('load', () => { window.__composerFrameReloads += 1; }); return true; })()",
+            "(() => { const root = document.querySelector('[data-composer-editor]'); const frame = root?.querySelector('iframe[data-widget-preview-mode=\"proprietary\"]'); if (!frame) { return false; } window.__composerFrameReloads = 0; frame.addEventListener('load', () => { window.__composerFrameReloads += 1; }); return true; })()",
             true,
         )
         ->assertScript(
@@ -68,7 +68,7 @@ it('keeps the add-widget dropdown open after adding a built-in widget and keeps 
             true,
         )
         ->assertScript(
-            "(() => { const root = document.querySelector('[data-composer-editor]'); const frame = root?.querySelector('iframe[data-widget-preview-mode=\"built_in\"]'); const src = frame?.getAttribute('src') || ''; return src !== '' && !src.includes('expires='); })()",
+            "(() => { const root = document.querySelector('[data-composer-editor]'); const frame = root?.querySelector('iframe[data-widget-preview-mode=\"proprietary\"]'); const src = frame?.getAttribute('src') || ''; return src !== '' && !src.includes('expires='); })()",
             true,
         )
         ->assertScript(

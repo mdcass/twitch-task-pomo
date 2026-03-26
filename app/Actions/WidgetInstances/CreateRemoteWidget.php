@@ -8,9 +8,9 @@ use App\Models\User;
 use App\Models\WidgetInstance;
 use App\Support\Widgets\RemoteWidgetPreviewInspector;
 use App\Support\Widgets\RemoteWidgetUrlGuard;
-use App\Support\Widgets\WidgetGeometryNormalizer;
+use App\Support\Widgets\WidgetGeometry;
+use App\Support\Widgets\WidgetInstanceSpec;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -18,9 +18,9 @@ use Illuminate\Validation\ValidationException;
 class CreateRemoteWidget
 {
     public function __construct(
+        private readonly CreateWidgetInstance $createWidgetInstance,
         private readonly RemoteWidgetPreviewInspector $previewInspector,
         private readonly RemoteWidgetUrlGuard $remoteWidgetUrlGuard,
-        private readonly WidgetGeometryNormalizer $geometryNormalizer,
     ) {}
 
     /**
@@ -53,43 +53,15 @@ class CreateRemoteWidget
         $validated['embed_url'] = $this->remoteWidgetUrlGuard->assertAllowed($validated['embed_url']);
         $previewResult = $this->previewInspector->inspect($validated['embed_url']);
 
-        $widget = DB::transaction(function () use ($canvas, $validated, $previewResult): WidgetInstance {
-            $nextIndex = (int) $canvas->widgetInstances()->max('z_index') + 1;
-            $geometry = $this->geometryForCanvas([
-                'position_x' => min(120 + (($nextIndex - 1) * 36), 920),
-                'position_y' => min(120 + (($nextIndex - 1) * 28), 520),
-                'width' => 760,
-                'height' => 480,
-                'content_width' => 760,
-                'content_height' => 480,
-            ], $canvas);
-
-            return $canvas->widgetInstances()->create([
-                'team_id' => $canvas->team_id,
-                'source_kind' => WidgetSourceKind::RemoteUrl,
-                'type' => null,
-                'name' => trim((string) ($validated['name'] ?? '')) ?: $this->defaultName($validated['embed_url']),
-                'embed_url' => $validated['embed_url'],
-                'position_x' => $geometry['position_x'],
-                'position_y' => $geometry['position_y'],
-                'width' => $geometry['width'],
-                'height' => $geometry['height'],
-                'content_width' => $geometry['content_width'],
-                'content_height' => $geometry['content_height'],
-                'crop_top' => 0,
-                'crop_right' => 0,
-                'crop_bottom' => 0,
-                'crop_left' => 0,
-                'z_index' => $nextIndex,
-                'is_visible' => true,
-                'settings' => $this->settingsWithEditorDefaults($geometry),
-                'preview_status' => $previewResult->status,
-                'preview_message' => $previewResult->message,
-                'preview_checked_at' => $previewResult->checkedAt,
-            ]);
-        });
-
-        return $widget->fresh();
+        return $this->createWidgetInstance->create($canvas, new WidgetInstanceSpec(
+            sourceKind: WidgetSourceKind::RemoteUrl,
+            geometry: $this->defaultGeometryFor($canvas),
+            name: trim((string) ($validated['name'] ?? '')) ?: $this->defaultName($validated['embed_url']),
+            embedUrl: $validated['embed_url'],
+            previewStatus: $previewResult->status,
+            previewMessage: $previewResult->message,
+            previewCheckedAt: $previewResult->checkedAt,
+        ));
     }
 
     private function defaultName(string $url): string
@@ -99,34 +71,23 @@ class CreateRemoteWidget
         return is_string($host) && $host !== '' ? $host : 'Remote Widget';
     }
 
-    /**
-     * @param  array{width:int, height:int, content_width:int, content_height:int}  $geometry
-     * @return array<string, mixed>
-     */
-    private function settingsWithEditorDefaults(array $geometry): array
+    private function defaultGeometryFor(Canvas $canvas): WidgetGeometry
     {
-        return [
-            'editor_defaults' => [
-                'frame_width' => $geometry['width'],
-                'frame_height' => $geometry['height'],
-                'content_width' => $geometry['content_width'],
-                'content_height' => $geometry['content_height'],
-            ],
-        ];
-    }
+        $placementIndex = (int) $canvas->widgetInstances()->max('z_index') + 1;
 
-    /**
-     * @param  array{position_x:int, position_y:int, width:int, height:int, content_width:int, content_height:int}  $geometry
-     * @return array{position_x:int, position_y:int, width:int, height:int, content_width:int, content_height:int, crop_top:int, crop_right:int, crop_bottom:int, crop_left:int}
-     */
-    private function geometryForCanvas(array $geometry, Canvas $canvas): array
-    {
-        return $this->geometryNormalizer->normalize($canvas, [
-            ...$geometry,
-            'crop_top' => 0,
-            'crop_right' => 0,
-            'crop_bottom' => 0,
-            'crop_left' => 0,
-        ]);
+        return WidgetGeometry::uncropped(
+            positionX: min(
+                WidgetGeometry::DEFAULT_REMOTE_WIDGET_BASE_X + (($placementIndex - 1) * WidgetGeometry::DEFAULT_REMOTE_WIDGET_STEP_X),
+                WidgetGeometry::DEFAULT_REMOTE_WIDGET_MAX_X,
+            ),
+            positionY: min(
+                WidgetGeometry::DEFAULT_REMOTE_WIDGET_BASE_Y + (($placementIndex - 1) * WidgetGeometry::DEFAULT_REMOTE_WIDGET_STEP_Y),
+                WidgetGeometry::DEFAULT_REMOTE_WIDGET_MAX_Y,
+            ),
+            width: WidgetGeometry::DEFAULT_REMOTE_WIDGET_WIDTH,
+            height: WidgetGeometry::DEFAULT_REMOTE_WIDGET_HEIGHT,
+            contentWidth: WidgetGeometry::DEFAULT_REMOTE_WIDGET_WIDTH,
+            contentHeight: WidgetGeometry::DEFAULT_REMOTE_WIDGET_HEIGHT,
+        );
     }
 }

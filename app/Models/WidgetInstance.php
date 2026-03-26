@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\Models\WidgetPreviewStatus;
 use App\Enums\Models\WidgetSourceKind;
 use App\Enums\Models\WidgetType;
+use App\Exceptions\DomainInvariantViolation;
+use App\Models\Concerns\EnforcesModelInvariants;
 use Database\Factories\WidgetInstanceFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,12 +17,15 @@ class WidgetInstance extends Model
 {
     /** @use HasFactory<WidgetInstanceFactory> */
     use HasFactory;
+    use EnforcesModelInvariants;
+
+    protected $table = 'canvas_widgets';
 
     protected $fillable = [
         'canvas_id',
+        'widget_id',
         'team_id',
         'source_kind',
-        'type',
         'name',
         'embed_url',
         'position_x',
@@ -45,7 +50,6 @@ class WidgetInstance extends Model
     {
         return [
             'source_kind' => WidgetSourceKind::class,
-            'type' => WidgetType::class,
             'position_x' => 'integer',
             'position_y' => 'integer',
             'width' => 'integer',
@@ -69,6 +73,11 @@ class WidgetInstance extends Model
         return $this->belongsTo(Canvas::class);
     }
 
+    public function widget(): BelongsTo
+    {
+        return $this->belongsTo(Widget::class);
+    }
+
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
@@ -76,16 +85,16 @@ class WidgetInstance extends Model
 
     public function displayName(): string
     {
+        if ($this->source_kind === WidgetSourceKind::Proprietary) {
+            return $this->proprietaryWidget()->displayName();
+        }
+
         if (filled($this->name)) {
-            return $this->name;
+            return trim((string) $this->name);
         }
 
-        if ($this->source_kind === WidgetSourceKind::BuiltIn && $this->type instanceof WidgetType) {
-            return $this->type->defaultName();
-        }
-
-        if ($this->source_kind === WidgetSourceKind::RemoteUrl && filled($this->embed_url)) {
-            $host = parse_url($this->embed_url, PHP_URL_HOST);
+        if (filled($this->embed_url)) {
+            $host = parse_url((string) $this->embed_url, PHP_URL_HOST);
 
             if (is_string($host) && $host !== '') {
                 return Str::headline($host);
@@ -97,11 +106,10 @@ class WidgetInstance extends Model
 
     public function previewUrl(): ?string
     {
-        if ($this->source_kind === WidgetSourceKind::RemoteUrl) {
-            return $this->preview_status === WidgetPreviewStatus::Ready ? $this->embed_url : null;
-        }
-
-        return $this->type?->previewUrl($this->settings ?? []);
+        return $this->source_kind === WidgetSourceKind::RemoteUrl
+            && $this->preview_status === WidgetPreviewStatus::Ready
+            ? $this->embed_url
+            : null;
     }
 
     public function usesIframePreview(): bool
@@ -114,14 +122,6 @@ class WidgetInstance extends Model
         return in_array($this->preview_status, [WidgetPreviewStatus::Blocked, WidgetPreviewStatus::Unknown], true);
     }
 
-    public function visibleContentWidth(): int
-    {
-        return max(1, $this->content_width - $this->crop_left - $this->crop_right);
-    }
-
-    /**
-     * @return array{frame_width:int, frame_height:int, content_width:int, content_height:int}
-     */
     public function editorDefaults(): array
     {
         return [
@@ -130,6 +130,11 @@ class WidgetInstance extends Model
             'content_width' => max(1, (int) data_get($this->settings, 'editor_defaults.content_width', $this->content_width)),
             'content_height' => max(1, (int) data_get($this->settings, 'editor_defaults.content_height', $this->content_height)),
         ];
+    }
+
+    public function visibleContentWidth(): int
+    {
+        return max(1, $this->content_width - $this->crop_left - $this->crop_right);
     }
 
     public function visibleContentHeight(): int
@@ -145,5 +150,80 @@ class WidgetInstance extends Model
     public function renderScaleY(): float
     {
         return $this->height / $this->visibleContentHeight();
+    }
+
+    protected function type(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::get(
+            fn (): ?WidgetType => $this->source_kind === WidgetSourceKind::Proprietary
+                ? $this->proprietaryWidget()->type
+                : null,
+        );
+    }
+
+    protected function enforceModelInvariants(): void
+    {
+        $canvasTeamId = $this->resolveCanvasTeamId();
+
+        if ($canvasTeamId !== $this->team_id) {
+            throw DomainInvariantViolation::for('Widget instance team_id must match its parent canvas team.');
+        }
+
+        if ($this->source_kind === WidgetSourceKind::Proprietary) {
+            $widget = $this->resolveBackingWidget();
+
+            if (! $widget instanceof Widget) {
+                throw DomainInvariantViolation::for('Proprietary widget instances must reference a backing widget.');
+            }
+
+            if ($widget->team_id !== $this->team_id) {
+                throw DomainInvariantViolation::for('Proprietary widget instances must reference a widget from the same team.');
+            }
+
+            return;
+        }
+
+        if ($this->widget_id !== null) {
+            throw DomainInvariantViolation::for('Remote widget instances may not reference a proprietary widget.');
+        }
+    }
+
+    private function proprietaryWidget(): Widget
+    {
+        $widget = $this->resolveBackingWidget();
+
+        if ($widget instanceof Widget) {
+            return $widget;
+        }
+
+        throw DomainInvariantViolation::for('Proprietary widget instances must resolve a backing widget.');
+    }
+
+    private function resolveBackingWidget(): ?Widget
+    {
+        if ($this->widget_id === null) {
+            return null;
+        }
+
+        if ($this->relationLoaded('widget')) {
+            $relation = $this->getRelation('widget');
+
+            return $relation instanceof Widget ? $relation : null;
+        }
+
+        return Widget::query()->find($this->widget_id);
+    }
+
+    private function resolveCanvasTeamId(): int
+    {
+        if ($this->relationLoaded('canvas')) {
+            $canvas = $this->getRelation('canvas');
+
+            if ($canvas instanceof Canvas) {
+                return (int) $canvas->team_id;
+            }
+        }
+
+        return (int) Canvas::query()->findOrFail($this->canvas_id)->team_id;
     }
 }

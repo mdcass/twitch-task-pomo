@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Actions\Auth\SocialAuthService;
 use App\Enums\ExternalAuthProvider;
 use App\Enums\OauthFlow;
 use App\Http\Controllers\Controller;
+use App\Services\Auth\SocialAuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;

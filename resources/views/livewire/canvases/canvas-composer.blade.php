@@ -130,7 +130,7 @@
                         </div>
                         <h3 class="h4 mb-2">{{ __('Start this canvas with your first widget') }}</h3>
                         <p class="text-body-secondary mb-0">
-                            {{ __('Add a built-in placeholder or an HTTPS iframe widget from the page toolbar.') }}
+                            {{ __('Add a widget or remote widget from the page toolbar.') }}
                         </p>
                     </div>
                 </template>
@@ -281,6 +281,23 @@
 
                         @if ($this->can_edit)
                             <div class="d-flex flex-wrap gap-2">
+                                @if (
+                                    $this->selected_widget->source_kind === \App\Enums\Models\WidgetSourceKind::Proprietary &&
+                                        $this->selected_widget->widget)
+                                    <x-overlay-trigger class="btn btn-sm btn-primary"
+                                        id="canvas-widget-settings-offcanvas" surface="offcanvas" :data="[
+                                            'widgetId' => $this->selected_widget->widget->id,
+                                        ]"
+                                        title="Edit Widget Settings">
+                                        {{ __('Edit widget settings') }}
+                                    </x-overlay-trigger>
+
+                                    <a href="{{ route('widgets.edit', $this->selected_widget->widget, false) }}"
+                                        class="btn btn-sm btn-phoenix-secondary">
+                                        {{ __('Open widget page') }}
+                                    </a>
+                                @endif
+
                                 <button type="button" class="btn btn-sm btn-phoenix-secondary"
                                     data-composer-selected-action="reorder"
                                     data-widget-id="{{ $this->selected_widget->id }}" data-direction="back">
@@ -296,6 +313,30 @@
                                     data-widget-id="{{ $this->selected_widget->id }}">
                                     {{ __('Delete widget') }}
                                 </button>
+                            </div>
+                        @endif
+
+                        @if (
+                            $this->selected_widget->source_kind === \App\Enums\Models\WidgetSourceKind::Proprietary &&
+                                $this->selected_widget->widget?->lifecycle_state?->value === 'pending_connection')
+                            <div class="alert alert-subtle-warning border border-warning-subtle mb-0 small">
+                                {{ __('This widget is attached to the canvas, but it stays hidden on live output until its provider is connected or repaired on the full widget page.') }}
+                            </div>
+                        @endif
+
+                        @if (
+                            $this->selected_widget->source_kind === \App\Enums\Models\WidgetSourceKind::Proprietary &&
+                                $this->selected_widget->widget?->lifecycle_state?->value === 'broken')
+                            <div class="alert alert-subtle-danger border border-danger-subtle mb-0 small">
+                                {{ __('This widget is currently broken and stays hidden on live output until repaired from the full widget page.') }}
+                            </div>
+                        @endif
+
+                        @if (
+                            $this->selected_widget->source_kind === \App\Enums\Models\WidgetSourceKind::Proprietary &&
+                                $this->selected_widget->widget?->lifecycle_state?->value === 'archived')
+                            <div class="alert alert-subtle-warning border border-warning-subtle mb-0 small">
+                                {{ __('This widget remains on the canvas, but archived widgets do not render in runtime or standalone outputs until restored.') }}
                             </div>
                         @endif
                     </div>

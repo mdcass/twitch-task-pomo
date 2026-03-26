@@ -44,7 +44,9 @@ The near-term product focus is `Overlay Composer`: a single browser-source overl
 
 - Team is the default tenancy and ownership boundary.
 - Blade and Livewire are the default interactive stack.
-- Controllers, jobs, and components should stay thin; mutation and validation logic should converge in actions or services.
+- Authenticated product UI should render through Blade app-shell views with embedded Livewire components rather than full-page Livewire routes.
+- App-shell UI controllers should be thin and resource-style; they should authorize, resolve route models, and return the shell while page behavior lives in Livewire.
+- Controllers, jobs, and components should stay thin; aggregate-local behavior should usually live on models or model concerns, while validated commands and external or cross-aggregate orchestration should converge in actions or services.
 - Workflow primitives are available for resumable onboarding and guest-safe state persistence.
 - The authenticated UI is product-owned even when it follows Phoenix references.
 - Realtime overlay and viewer-facing experiences should use Laravel Echo and secure URL boundaries.

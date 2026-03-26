@@ -5,6 +5,7 @@ namespace App\Actions\WidgetInstances;
 use App\Models\Canvas;
 use App\Models\User;
 use App\Models\WidgetInstance;
+use App\Support\Widgets\WidgetGeometry;
 use App\Support\Widgets\WidgetGeometryNormalizer;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
@@ -40,7 +41,7 @@ class UpdateWidgetGeometry
             'crop_left' => $input['crop_left'] ?? $widgetInstance->crop_left,
         ]);
 
-        $widgetInstance->fill($normalized);
+        $widgetInstance->fill($normalized->toArray());
         $widgetInstance->save();
 
         return $widgetInstance->fresh();
@@ -48,22 +49,9 @@ class UpdateWidgetGeometry
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{
-     *     position_x:int,
-     *     position_y:int,
-     *     width:int,
-     *     height:int,
-     *     content_width:int,
-     *     content_height:int,
-     *     crop_top:int,
-     *     crop_right:int,
-     *     crop_bottom:int,
-     *     crop_left:int
-     * }
-     *
      * @throws ValidationException
      */
-    public function normalizeForCanvas(Canvas $canvas, array $input): array
+    public function normalizeForCanvas(Canvas $canvas, array $input): WidgetGeometry
     {
         $limits = $this->geometryNormalizer->geometryLimits($canvas);
         $canvasWidth = max(1, (int) $canvas->width);
@@ -82,6 +70,6 @@ class UpdateWidgetGeometry
             'crop_left' => ['required', 'integer', 'min:0'],
         ])->validate();
 
-        return $this->geometryNormalizer->normalize($canvas, $validated);
+        return $this->geometryNormalizer->normalize($canvas, WidgetGeometry::fromArray($validated));
     }
 }

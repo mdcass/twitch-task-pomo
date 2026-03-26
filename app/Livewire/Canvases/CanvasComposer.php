@@ -3,7 +3,7 @@
 namespace App\Livewire\Canvases;
 
 use App\Actions\WidgetInstances\ReorderWidgetInstance;
-use App\Actions\WidgetInstances\RestoreCanvasWidgetState;
+use App\Actions\WidgetInstances\RestoreWidgetInstanceState;
 use App\Actions\WidgetInstances\ToggleWidgetVisibility;
 use App\Actions\WidgetInstances\UpdateWidgetGeometry;
 use App\Models\Canvas;
@@ -112,6 +112,13 @@ class CanvasComposer extends Component
         $this->syncPreviewSeeds();
     }
 
+    #[On('widget-updated')]
+    public function handleWidgetUpdated(): void
+    {
+        $this->refreshComputedState();
+        $this->syncPreviewSeeds();
+    }
+
     #[On('widget-deleted')]
     public function handleWidgetDeleted(?int $deletedWidgetId = null, ?int $selectedWidgetId = null): void
     {
@@ -126,11 +133,11 @@ class CanvasComposer extends Component
     public function restoreHistoryState(
         array $widgets,
         ?int $selectedWidgetId,
-        RestoreCanvasWidgetState $restoreCanvasWidgetState,
+        RestoreWidgetInstanceState $restoreWidgetInstanceState,
     ): void {
         $canvas = $this->resolveCanvas();
 
-        $restoreCanvasWidgetState->restore(auth()->user(), $canvas, $widgets);
+        $restoreWidgetInstanceState->restore(auth()->user(), $canvas, $widgets);
 
         $this->selectedWidgetId = $this->resolvedSelectedWidgetId($selectedWidgetId);
         $this->refreshComputedState();
@@ -240,7 +247,9 @@ class CanvasComposer extends Component
                         'zIndex' => $widget->z_index,
                         'previewUrl' => $this->previewUrlFor($widget),
                         'previewToken' => $this->previewTokenFor($widget),
-                        'previewMode' => $widget->source_kind->value,
+                        'previewMode' => $widget->source_kind === \App\Enums\Models\WidgetSourceKind::Proprietary
+                            ? 'proprietary'
+                            : $widget->source_kind->value,
                     ])
                 ->values()
                 ->all(),
@@ -277,7 +286,7 @@ class CanvasComposer extends Component
         if ($loadWidgets) {
             $query->with([
                 'createdByUser',
-                'orderedWidgetInstances',
+                'orderedWidgetInstances.widget',
             ]);
         }
 

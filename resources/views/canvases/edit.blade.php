@@ -35,15 +35,21 @@
 
                         <ul class="dropdown-menu dropdown-menu-end py-2">
                             <li>
-                                <x-overlay-trigger class="dropdown-item" id="canvas-built-in-widget-offcanvas"
+                                <x-overlay-trigger class="dropdown-item" id="canvas-quick-create-widget-offcanvas"
                                     surface="offcanvas">
-                                    {{ __('Built-in placeholder') }}
+                                    {{ __('Quick-create widget') }}
+                                </x-overlay-trigger>
+                            </li>
+                            <li>
+                                <x-overlay-trigger class="dropdown-item" id="canvas-attach-widget-offcanvas"
+                                    surface="offcanvas">
+                                    {{ __('Attach widget') }}
                                 </x-overlay-trigger>
                             </li>
                             <li>
                                 <x-overlay-trigger class="dropdown-item" id="canvas-remote-widget-offcanvas"
                                     surface="offcanvas">
-                                    {{ __('Remote embed URL') }}
+                                    {{ __('Add remote widget') }}
                                 </x-overlay-trigger>
                             </li>
                         </ul>
@@ -95,9 +101,16 @@
         ])
 
         @livewire('offcanvas', [
-            'component' => ['canvases.add-built-in-widget-form', ['canvasId' => $canvas->id]],
-            'elementId' => 'canvas-built-in-widget-offcanvas',
-            'title' => 'Add Built-in Widget',
+            'component' => ['canvases.quick-create-widget-form', ['canvasId' => $canvas->id]],
+            'elementId' => 'canvas-quick-create-widget-offcanvas',
+            'title' => 'Quick-Create Widget',
+            'width' => 'lg',
+        ])
+
+        @livewire('offcanvas', [
+            'component' => ['canvases.attach-existing-widget-form', ['canvasId' => $canvas->id]],
+            'elementId' => 'canvas-attach-widget-offcanvas',
+            'title' => 'Attach Widget',
             'width' => 'lg',
         ])
 
@@ -107,6 +120,13 @@
             'title' => 'Add Remote Widget',
             'width' => 'lg',
             'initialFocus' => 'url',
+        ])
+
+        @livewire('offcanvas', [
+            'component' => ['canvases.edit-widget-settings-form'],
+            'elementId' => 'canvas-widget-settings-offcanvas',
+            'title' => 'Edit Widget Settings',
+            'width' => 'lg',
         ])
 
         @livewire('modal', [

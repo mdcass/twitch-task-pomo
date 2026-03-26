@@ -17,6 +17,8 @@ Read this file before changing Blade layouts, Livewire components, Phoenix-backe
 ### Blade And Livewire Defaults
 
 - Blade and Livewire are the default interactive stack.
+- Authenticated product pages should render through Blade app-shell views that mount Livewire components inside the shell.
+- Do not route authenticated product pages directly to full-page Livewire components.
 - Keep supplemental JavaScript minimal.
 - Only add new frontend libraries when the requirement cannot be met cleanly with Laravel, Livewire, Vite, Bootstrap, and browser primitives already in the repo.
 
@@ -31,6 +33,7 @@ Read this file before changing Blade layouts, Livewire components, Phoenix-backe
 ### Product-Owned UI Boundaries
 
 - Runtime Blade, CSS, and JavaScript stay product-owned under `resources/views/`, `resources/css/`, and `resources/js/`.
+- App-shell UI controllers should stay resource-style and shell-only; page queries and mutations belong in the embedded Livewire layer.
 - Use Phoenix as a reference and source material, not as a runtime asset source.
 - Do not point runtime layouts or Vite entrypoints at Phoenix `public/assets` output.
 

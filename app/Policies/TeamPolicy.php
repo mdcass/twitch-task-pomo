@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Auth\Access\Response;
 
 class TeamPolicy
 {
@@ -72,5 +73,12 @@ class TeamPolicy
     public function delete(User $user, Team $team): bool
     {
         return $user->ownsTeam($team);
+    }
+
+    public function manageIntegrations(User $user, Team $team): Response
+    {
+        return $user->ownsTeam($team)
+            ? Response::allow()
+            : Response::deny('Only team owners may manage integrations.');
     }
 }

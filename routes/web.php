@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\CanvasController;
+use App\Http\Controllers\IntegrationConnectionController;
+use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\OverlayCanvasController;
 use App\Http\Controllers\OverlayWidgetController;
+use App\Http\Controllers\WidgetController;
 use App\Http\Controllers\Auth\OauthController;
 use App\Http\Middleware\AllowAppOriginFrameEmbedding;
 use App\Http\Middleware\DisableDebugbar;
@@ -36,6 +39,10 @@ Route::middleware(DenyFrameEmbedding::class)->group(function (): void {
     ])->group(function (): void {
         Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
         Route::resource('canvases', CanvasController::class)->only(['index', 'edit']);
+        Route::resource('widgets', WidgetController::class)->only(['index', 'edit']);
+        Route::get('/integrations', [IntegrationController::class, 'index'])->name('integrations.index');
+        Route::get('/integrations/connect/{provider}', [IntegrationConnectionController::class, 'redirect'])->name('integrations.redirect');
+        Route::get('/integrations/callback/{provider}', [IntegrationConnectionController::class, 'callback'])->name('integrations.callback');
     });
 });
 
@@ -44,6 +51,8 @@ Route::name('overlay.')
     ->group(function (): void {
         Route::get('/overlay/{canvasUuid}', [OverlayCanvasController::class, 'show'])
             ->name('canvases.show');
+        Route::get('/overlay/published-widgets/{widget:uuid}/{key}', [OverlayWidgetController::class, 'showPublished'])
+            ->name('widgets.published');
     });
 
 Route::name('overlay.')
