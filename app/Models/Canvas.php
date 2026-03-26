@@ -60,6 +60,16 @@ class Canvas extends Model
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
+    public function canvasWidgets(): HasMany
+    {
+        return $this->hasMany(CanvasWidget::class);
+    }
+
+    public function orderedCanvasWidgets(): HasMany
+    {
+        return $this->canvasWidgets()->orderBy('z_index')->orderBy('id');
+    }
+
     public function widgetInstances(): HasMany
     {
         return $this->hasMany(WidgetInstance::class);

@@ -69,6 +69,7 @@ Proprietary widget architecture requirements:
 
 - Proprietary widgets should be durable team-owned definitions managed through the `Widgets` area
 - Canvas placement should be separate from widget definition so the same widget can appear on multiple canvases with different placement
+- Remote URL embeds should remain canvas-scoped advanced placements rather than reusable entries in the top-level `Widgets` library
 - Widget configuration schemas should be code-owned and versioned rather than stored as database-authored schemas
 - Proprietary widgets should remain curated and product-defined in MVP; no end-user widget builder or scripting surface is required
 - Proprietary widgets should support both standalone browser-source delivery and canvas placement through the same underlying architecture
@@ -79,11 +80,12 @@ Widget management UX requirements:
 - `Widgets` should be a top-level navigation area and the primary library-management surface for proprietary widgets
 - The `Widgets` index should support creation, search and filtering, and should show widget type, current status, last updated time, canvas usage count, and standalone publication state
 - Creating a widget should start by choosing a widget type, creating a draft widget with defaults, and then redirecting immediately to the widget edit page
-- The canonical widget edit page should be a single-page editor that combines configuration, live preview, publication controls, provider and runtime status, and advanced actions such as reset, archive, and signed-URL regeneration
+- The canonical widget edit page should be a single-page editor that combines configuration, live preview, publication controls, provider and runtime status, and advanced actions such as reset, archive, and signed-URL regeneration, using one shared shell with type-resolved panels
 - Widget config edited from a canvas page in v1 should mutate the shared widget definition, and the UI should make that shared scope explicit
-- Canvas-side widget editing should use a config-only offcanvas; publish controls, provider initiation, repair flows, and destructive actions belong on the full widget page
+- Canvas-side widget editing should use a shared-config offcanvas that may edit shared config and appearance; publish controls, provider initiation, repair flows, archive actions, and destructive actions belong on the full widget page
 - Canvas add-widget flows should support both attaching an existing shared widget and quick-creating a new shared widget before attaching it
 - Widget lifecycle states should distinguish at least `draft`, `ready`, `pending connection`, `broken`, and `archived`
+- Widget lifecycle or health state should remain separate from standalone publication state
 
 Provider and integration UX requirements:
 
@@ -91,9 +93,10 @@ Provider and integration UX requirements:
 - A widget should not enter a `ready` state unless the required provider connection and scopes are currently valid for that widget type
 - The widget edit page should expose inline connect, reconnect, and repair actions for required providers
 - Provider status may be shown from the canvas editor, but provider initiation and repair should route the user to the canonical widget edit page instead of starting from the canvas
-- The product should include a central `Team Integrations` management page accessible from the account area for Twitch and Spotify-style provider connections
-- The `Team Integrations` page should show provider health, usage counts, and drill-in access to the widgets depending on a given integration
-- Team integrations should be presented as team-owned product surfaces, while v1 operational ownership remains limited to the team owner's connection
+- The product should include a central `Integrations` management page accessible from the account area for Twitch and Spotify-style provider connections
+- The `Integrations` page should show provider health, usage counts, and drill-in access to the widgets depending on a given integration
+- In v1, provider credentials remain user-owned end to end, and provider-gated widget management is owner-only
+- Quick-create from a canvas should still allow provider-gated widget drafts, but blocked drafts should link the owner to the canonical widget edit page for connect or repair
 
 Workflow orchestration requirements:
 
@@ -126,6 +129,7 @@ Task list presentation and limits:
 Standalone widget surfaces:
 
 - Proprietary widgets should live under a `Widgets` navigation area distinct from `Canvases`
+- The `Widgets` navigation area should manage proprietary widgets only; remote URL embeds remain canvas-scoped advanced placements
 - Standalone widget delivery should use durable signed URLs with owner-driven regeneration, matching the overlay security posture already used for canvases
 - The same proprietary widget should be placeable onto canvases through placement records rather than duplicated configuration
 
@@ -134,7 +138,7 @@ Shared proprietary widget behavior:
 - Canvas pages may edit the shared widget definition in v1 in addition to placement-level configuration
 - Placement changes remain canvas-specific, while widget config changes affect every placement of that widget
 - Widget-specific runtime or projection state should remain outside the generic durable widget table when the data is type-specific
-- Widget archiving should be the default removal path in v1 rather than destructive delete so shared placements and standalone publication can be disabled in a controlled way
+- Widget archiving should be the default removal path in v1 rather than destructive delete so shared placements can remain intact while standalone publication and runtime rendering are disabled in a controlled way
 
 Follower Goal requirements:
 
@@ -159,6 +163,7 @@ Spotify Now Playing requirements:
 - Spotify Now Playing should be treated as a formal proprietary widget type rather than a long-term local/testing seam
 - Spotify-specific provider and playback concerns should remain type-owned within the shared widget architecture rather than becoming a special widget system outside it
 - Starting Spotify authorization or repair from a widget-management surface should use a persisted workflow and should return the owner to the originating widget edit page on callback
+- The existing local Spotify seam should be removed once the formal Spotify widget path is implemented
 
 ### 6.2 Overlay Composer
 

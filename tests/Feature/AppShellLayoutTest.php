@@ -175,6 +175,42 @@ class AppShellLayoutTest extends TestCase
             ->assertDontSee('class="nav-link label-1 active" href="/user/profile"', false);
     }
 
+    public function test_widgets_navigation_item_renders_for_authenticated_team_members_and_marks_active(): void
+    {
+        $owner = $this->verifiedUserWithCurrentTeam();
+        $member = User::factory()->create();
+
+        $owner->currentTeam->users()->attach($member, ['role' => 'moderator']);
+        $member->switchTeam($owner->currentTeam);
+
+        $this->actingAs($member)
+            ->get(route('widgets.index', absolute: false))
+            ->assertOk()
+            ->assertSee('class="nav-link label-1 active" href="/widgets"', false)
+            ->assertSee('>Widgets<', false);
+    }
+
+    public function test_integrations_navigation_item_is_visible_only_to_the_team_owner(): void
+    {
+        $owner = $this->verifiedUserWithCurrentTeam();
+        $member = User::factory()->create();
+
+        $owner->currentTeam->users()->attach($member, ['role' => 'moderator']);
+        $member->switchTeam($owner->currentTeam);
+
+        $this->actingAs($owner)
+            ->get('/_test/shell/vertical')
+            ->assertOk()
+            ->assertSee('href="/integrations"', false)
+            ->assertSee('>Integrations<', false);
+
+        $this->actingAs($member)
+            ->get('/_test/shell/vertical')
+            ->assertOk()
+            ->assertDontSee('href="/integrations"', false)
+            ->assertDontSee('>Integrations<', false);
+    }
+
     public function test_theme_switcher_remains_present_without_search_or_notifications(): void
     {
         $user = $this->verifiedUserWithCurrentTeam();

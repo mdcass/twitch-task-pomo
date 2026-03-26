@@ -67,7 +67,7 @@ class CreateRemoteWidget
             return $canvas->widgetInstances()->create([
                 'team_id' => $canvas->team_id,
                 'source_kind' => WidgetSourceKind::RemoteUrl,
-                'type' => null,
+                'widget_id' => null,
                 'name' => trim((string) ($validated['name'] ?? '')) ?: $this->defaultName($validated['embed_url']),
                 'embed_url' => $validated['embed_url'],
                 'position_x' => $geometry['position_x'],

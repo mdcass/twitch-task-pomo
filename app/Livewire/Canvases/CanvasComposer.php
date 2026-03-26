@@ -112,6 +112,13 @@ class CanvasComposer extends Component
         $this->syncPreviewSeeds();
     }
 
+    #[On('widget-updated')]
+    public function handleWidgetUpdated(): void
+    {
+        $this->refreshComputedState();
+        $this->syncPreviewSeeds();
+    }
+
     #[On('widget-deleted')]
     public function handleWidgetDeleted(?int $deletedWidgetId = null, ?int $selectedWidgetId = null): void
     {
@@ -240,7 +247,9 @@ class CanvasComposer extends Component
                         'zIndex' => $widget->z_index,
                         'previewUrl' => $this->previewUrlFor($widget),
                         'previewToken' => $this->previewTokenFor($widget),
-                        'previewMode' => $widget->source_kind->value,
+                        'previewMode' => $widget->source_kind === \App\Enums\Models\WidgetSourceKind::Proprietary
+                            ? 'built_in'
+                            : $widget->source_kind->value,
                     ])
                 ->values()
                 ->all(),
@@ -277,7 +286,7 @@ class CanvasComposer extends Component
         if ($loadWidgets) {
             $query->with([
                 'createdByUser',
-                'orderedWidgetInstances',
+                'orderedWidgetInstances.widget',
             ]);
         }
 

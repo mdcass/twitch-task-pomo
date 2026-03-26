@@ -9,12 +9,16 @@ enum WidgetType: string
 {
     case Pomodoro = 'pomodoro';
     case TaskList = 'task_list';
+    case FollowerGoal = 'follower_goal';
+    case SpotifyNowPlaying = 'spotify_now_playing';
 
     public function label(): string
     {
         return match ($this) {
             self::Pomodoro => 'Pomodoro Timer',
             self::TaskList => 'Task List',
+            self::FollowerGoal => 'Follower Goal',
+            self::SpotifyNowPlaying => 'Spotify Now Playing',
         };
     }
 
@@ -40,6 +44,16 @@ enum WidgetType: string
                 'focus_minutes' => 25,
                 'break_minutes' => 5,
             ],
+            self::FollowerGoal => [
+                'title' => 'Follower Goal',
+                'goal_target' => 50,
+                'end_date' => now()->addMonth()->toDateString(),
+                'sound_preset' => 'chime',
+            ],
+            self::SpotifyNowPlaying => [
+                'title' => 'Now Playing',
+                'show_album_art' => true,
+            ],
         };
     }
 
@@ -48,6 +62,7 @@ enum WidgetType: string
         return match ($this) {
             self::TaskList => $this->taskListPreviewUrl($settings),
             self::Pomodoro => $this->pomodoroPreviewUrl($settings),
+            self::FollowerGoal, self::SpotifyNowPlaying => null,
         };
     }
 

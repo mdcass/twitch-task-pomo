@@ -3,6 +3,7 @@
 namespace App\Support\Widgets;
 
 use App\Enums\Models\WidgetSourceKind;
+use App\Models\CanvasWidget;
 use App\Models\WidgetInstance;
 use App\Support\Routing\OriginUrlGenerator;
 
@@ -15,7 +16,7 @@ class OverlayWidgetFrameUrlFactory
     /**
      * @param  array<string, mixed>  $previewSeed
      */
-    public function editorUrl(WidgetInstance $widget, array $previewSeed = []): ?string
+    public function editorUrl(CanvasWidget|WidgetInstance $widget, array $previewSeed = []): ?string
     {
         if (! $this->canRenderInEditor($widget)) {
             return null;
@@ -36,23 +37,23 @@ class OverlayWidgetFrameUrlFactory
     /**
      * @param  array<string, mixed>  $previewSeed
      */
-    public function editorToken(WidgetInstance $widget, array $previewSeed = []): ?string
+    public function editorToken(CanvasWidget|WidgetInstance $widget, array $previewSeed = []): ?string
     {
         if (! $this->canRenderInEditor($widget)) {
             return null;
         }
 
         return sha1((string) json_encode([
-            'widget_id' => $widget->id,
+            'canvas_widget_id' => $widget->id,
             'source_kind' => $widget->source_kind->value,
             'type' => $widget->type?->value,
             'embed_url' => $widget->source_kind === WidgetSourceKind::RemoteUrl ? $widget->previewUrl() : null,
-            'settings' => $widget->settings ?? [],
+            'widget_id' => $widget->widget_id,
             'seed' => $previewSeed,
         ]));
     }
 
-    public function runtimeUrl(WidgetInstance $widget): ?string
+    public function runtimeUrl(CanvasWidget|WidgetInstance $widget): ?string
     {
         if (! $this->canRenderInRuntime($widget)) {
             return null;
@@ -64,18 +65,19 @@ class OverlayWidgetFrameUrlFactory
         );
     }
 
-    private function canRenderInEditor(WidgetInstance $widget): bool
+    private function canRenderInEditor(CanvasWidget|WidgetInstance $widget): bool
     {
         return match ($widget->source_kind) {
-            WidgetSourceKind::BuiltIn => $widget->type !== null,
+            WidgetSourceKind::Proprietary => $widget->type !== null,
             WidgetSourceKind::RemoteUrl => is_string($widget->previewUrl()) && $widget->previewUrl() !== '',
         };
     }
 
-    private function canRenderInRuntime(WidgetInstance $widget): bool
+    private function canRenderInRuntime(CanvasWidget|WidgetInstance $widget): bool
     {
         return match ($widget->source_kind) {
-            WidgetSourceKind::BuiltIn => $widget->type !== null,
+            WidgetSourceKind::Proprietary => $widget->type !== null
+                && $widget->widget?->lifecycle_state?->value !== 'archived',
             WidgetSourceKind::RemoteUrl => is_string($widget->embed_url) && $widget->embed_url !== '',
         };
     }
@@ -85,7 +87,7 @@ class OverlayWidgetFrameUrlFactory
      * @return array<string, mixed>
      */
     private function routeParameters(
-        WidgetInstance $widget,
+        CanvasWidget|WidgetInstance $widget,
         ?string $token = null,
         array $previewSeed = [],
     ): array {

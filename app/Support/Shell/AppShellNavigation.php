@@ -60,6 +60,13 @@ class AppShellNavigation
                         'active' => ['canvases.*'],
                         'icon' => 'uil uil-panorama-h',
                     ],
+                    [
+                        'key' => 'widgets',
+                        'label' => __('Widgets'),
+                        'route' => 'widgets.index',
+                        'active' => ['widgets.*'],
+                        'icon' => 'uil uil-apps',
+                    ],
                 ],
             ],
             [
@@ -80,6 +87,14 @@ class AppShellNavigation
                         'active' => ['api-tokens.*'],
                         'icon' => 'uil uil-key-skeleton',
                         'visible' => fn (): bool => Jetstream::hasApiFeatures(),
+                    ],
+                    [
+                        'key' => 'integrations',
+                        'label' => __('Integrations'),
+                        'route' => 'integrations.index',
+                        'active' => ['integrations.*'],
+                        'icon' => 'uil uil-plug',
+                        'visible' => fn (User $user): bool => $user->currentTeam !== null && $user->ownsTeam($user->currentTeam),
                     ],
                 ],
             ],
@@ -171,6 +186,14 @@ class AppShellNavigation
                 'icon' => 'uil uil-user',
             ],
         ];
+
+        if ($user->currentTeam !== null && $user->ownsTeam($user->currentTeam) && Route::has('integrations.index')) {
+            $actions[] = [
+                'label' => __('Integrations'),
+                'href' => route('integrations.index', absolute: false),
+                'icon' => 'uil uil-plug',
+            ];
+        }
 
         if (Jetstream::hasApiFeatures() && Route::has('api-tokens.index')) {
             $actions[] = [

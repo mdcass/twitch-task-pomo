@@ -4,7 +4,7 @@ use App\Models\Canvas;
 use App\Models\User;
 use App\Models\WidgetInstance;
 
-it('keeps the add-widget dropdown open after adding a built-in widget and keeps the overlay iframe selected for editing', function (): void {
+it('keeps the add-widget dropdown open after adding a proprietary widget and keeps the overlay iframe selected for editing', function (): void {
     $user = User::factory()->withStreamerTeam()->create([
         'email' => 'browser-composer@example.test',
     ]);
@@ -26,10 +26,10 @@ it('keeps the add-widget dropdown open after adding a built-in widget and keeps 
         ->assertSee('Layers')
         ->click('[data-widget-add]')
         ->wait(0.2)
-        ->click('Built-in placeholder')
+        ->click('Create proprietary widget')
         ->wait(0.3)
         ->assertVisible('.offcanvas.show')
-        ->press('Add Widget')
+        ->press('Create and Attach Widget')
         ->wait(1.2)
         ->click('[data-widget-add]')
         ->wait(0.2)

@@ -281,6 +281,20 @@
 
                         @if ($this->can_edit)
                             <div class="d-flex flex-wrap gap-2">
+                                @if ($this->selected_widget->source_kind === \App\Enums\Models\WidgetSourceKind::Proprietary && $this->selected_widget->widget)
+                                    <x-overlay-trigger class="btn btn-sm btn-primary" id="canvas-shared-widget-offcanvas"
+                                        surface="offcanvas" :data="[
+                                            'widgetId' => $this->selected_widget->widget->id,
+                                        ]" title="Edit Shared Widget">
+                                        {{ __('Edit shared settings') }}
+                                    </x-overlay-trigger>
+
+                                    <a href="{{ route('widgets.show', $this->selected_widget->widget, false) }}"
+                                        class="btn btn-sm btn-phoenix-secondary">
+                                        {{ __('Open widget page') }}
+                                    </a>
+                                @endif
+
                                 <button type="button" class="btn btn-sm btn-phoenix-secondary"
                                     data-composer-selected-action="reorder"
                                     data-widget-id="{{ $this->selected_widget->id }}" data-direction="back">
@@ -296,6 +310,22 @@
                                     data-widget-id="{{ $this->selected_widget->id }}">
                                     {{ __('Delete widget') }}
                                 </button>
+                            </div>
+                        @endif
+
+                        @if (
+                            $this->selected_widget->source_kind === \App\Enums\Models\WidgetSourceKind::Proprietary &&
+                                $this->selected_widget->widget?->lifecycle_state?->value === 'pending_connection')
+                            <div class="alert alert-subtle-warning border border-warning-subtle mb-0 small">
+                                {{ __('This widget is attached as a draft. Connect or repair its provider on the full widget page before expecting runtime output.') }}
+                            </div>
+                        @endif
+
+                        @if (
+                            $this->selected_widget->source_kind === \App\Enums\Models\WidgetSourceKind::Proprietary &&
+                                $this->selected_widget->widget?->lifecycle_state?->value === 'archived')
+                            <div class="alert alert-subtle-warning border border-warning-subtle mb-0 small">
+                                {{ __('This widget remains on the canvas, but archived widgets do not render in runtime or standalone outputs until restored.') }}
                             </div>
                         @endif
                     </div>

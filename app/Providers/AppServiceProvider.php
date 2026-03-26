@@ -4,7 +4,11 @@ namespace App\Providers;
 
 use App\Http\Controllers\Auth\RegisterController;
 use App\Models\Canvas;
+use App\Models\Team;
+use App\Models\Widget;
 use App\Policies\CanvasPolicy;
+use App\Policies\TeamPolicy;
+use App\Policies\WidgetPolicy;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -30,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Canvas::class, CanvasPolicy::class);
+        Gate::policy(Team::class, TeamPolicy::class);
+        Gate::policy(Widget::class, WidgetPolicy::class);
 
         Event::listen(function (SocialiteWasCalled $event): void {
             $event->extendSocialite('discord', DiscordProvider::class);

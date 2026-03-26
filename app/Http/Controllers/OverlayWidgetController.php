@@ -3,35 +3,54 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Models\WidgetSourceKind;
+use App\Models\Widget;
 use App\Models\WidgetInstance;
-use App\Support\Widgets\BuiltInWidgetPageFactory;
+use App\Support\Widgets\WidgetDefinitionRegistry;
+use App\Support\Widgets\WidgetRenderDataFactory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class OverlayWidgetController extends Controller
 {
     public function __construct(
-        private readonly BuiltInWidgetPageFactory $builtInWidgetPageFactory,
+        private readonly WidgetDefinitionRegistry $definitions,
+        private readonly WidgetRenderDataFactory $renderData,
     ) {}
 
     public function show(Request $request, WidgetInstance $widgetInstance): View
     {
         return match ($widgetInstance->source_kind) {
-            WidgetSourceKind::BuiltIn => $this->showBuiltInWidget($request, $widgetInstance),
+            WidgetSourceKind::Proprietary => $this->showBuiltInWidget($request, $widgetInstance),
             WidgetSourceKind::RemoteUrl => $this->showRemoteWidget($request, $widgetInstance),
         };
     }
 
     private function showBuiltInWidget(Request $request, WidgetInstance $widgetInstance): View
     {
-        abort_unless($widgetInstance->type !== null, 404);
+        $widget = $widgetInstance->widget;
+        abort_unless($widget !== null, 404);
+        $definition = $this->definitions->forType($widget->type);
 
         return view(
-            $this->builtInWidgetPageFactory->viewFor($widgetInstance),
-            $this->builtInWidgetPageFactory->dataFor(
-                $widgetInstance,
-                previewSeed: $this->previewSeedFrom($request),
+            $definition->renderView(),
+            $this->renderData->forWidget(
+                $widget->loadMissing('followerGoalState', 'team.owner'),
+                ['previewSeed' => $this->previewSeedFrom($request)],
             ),
+        );
+    }
+
+    public function showPublished(Widget $widget, string $key): View
+    {
+        abort_unless($widget->isPublished(), 404);
+        abort_unless(hash_equals((string) $widget->publication_key, $key), 404);
+        abort_unless($widget->lifecycle_state?->value !== 'archived', 404);
+
+        $definition = $this->definitions->forType($widget->type);
+
+        return view(
+            $definition->renderView(),
+            $this->renderData->forWidget($widget->loadMissing('followerGoalState', 'team.owner')),
         );
     }
 

@@ -37,7 +37,13 @@
                             <li>
                                 <x-overlay-trigger class="dropdown-item" id="canvas-built-in-widget-offcanvas"
                                     surface="offcanvas">
-                                    {{ __('Built-in placeholder') }}
+                                    {{ __('Create proprietary widget') }}
+                                </x-overlay-trigger>
+                            </li>
+                            <li>
+                                <x-overlay-trigger class="dropdown-item" id="canvas-attach-widget-offcanvas"
+                                    surface="offcanvas">
+                                    {{ __('Attach existing widget') }}
                                 </x-overlay-trigger>
                             </li>
                             <li>
@@ -97,7 +103,14 @@
         @livewire('offcanvas', [
             'component' => ['canvases.add-built-in-widget-form', ['canvasId' => $canvas->id]],
             'elementId' => 'canvas-built-in-widget-offcanvas',
-            'title' => 'Add Built-in Widget',
+            'title' => 'Create Proprietary Widget',
+            'width' => 'lg',
+        ])
+
+        @livewire('offcanvas', [
+            'component' => ['canvases.attach-existing-widget-form', ['canvasId' => $canvas->id]],
+            'elementId' => 'canvas-attach-widget-offcanvas',
+            'title' => 'Attach Existing Widget',
             'width' => 'lg',
         ])
 
@@ -107,6 +120,13 @@
             'title' => 'Add Remote Widget',
             'width' => 'lg',
             'initialFocus' => 'url',
+        ])
+
+        @livewire('offcanvas', [
+            'component' => ['canvases.edit-shared-widget-form'],
+            'elementId' => 'canvas-shared-widget-offcanvas',
+            'title' => 'Edit Shared Widget',
+            'width' => 'lg',
         ])
 
         @livewire('modal', [

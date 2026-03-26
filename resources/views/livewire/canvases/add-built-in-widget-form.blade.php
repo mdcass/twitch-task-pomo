@@ -1,6 +1,6 @@
 <form wire:submit="submit" class="d-flex flex-column gap-4">
     <p class="mb-0">
-        {{ __('Add a built-in placeholder widget to the canvas. These use the product’s preview shapes until the runtime widgets are fully wired.') }}
+        {{ __('Create a new proprietary widget and attach it to this canvas in one step. Provider-gated widgets attach immediately as drafts, then link you back to the full widget page for connect or repair work.') }}
     </p>
 
     <div class="d-flex flex-column gap-3">
@@ -11,9 +11,23 @@
                 <div class="flex-grow-1">
                     <div class="fw-semibold">{{ $widgetType->label() }}</div>
                     <div class="small text-body-secondary">
-                        {{ $widgetType === \App\Enums\Models\WidgetType::TaskList
-                            ? __('Task queue placeholder with grouped pending and completed rows.')
-                            : __('Pomodoro timer placeholder with a focus-session preview.') }}
+                        @switch($widgetType)
+                            @case(\App\Enums\Models\WidgetType::TaskList)
+                                {{ __('Reusable task queue widget with shared pending and completed lists.') }}
+                            @break
+
+                            @case(\App\Enums\Models\WidgetType::Pomodoro)
+                                {{ __('Reusable pomodoro timer with shared focus and break defaults.') }}
+                            @break
+
+                            @case(\App\Enums\Models\WidgetType::FollowerGoal)
+                                {{ __('Twitch-backed goal bar that requires the team owner to connect Twitch.') }}
+                            @break
+
+                            @case(\App\Enums\Models\WidgetType::SpotifyNowPlaying)
+                                {{ __('Spotify now playing card that requires the team owner to connect Spotify.') }}
+                            @break
+                        @endswitch
                     </div>
                 </div>
             </label>
@@ -28,7 +42,7 @@
         </button>
 
         <button type="submit" class="btn btn-primary">
-            {{ __('Add Widget') }}
+            {{ __('Create and Attach Widget') }}
         </button>
     </div>
 </form>

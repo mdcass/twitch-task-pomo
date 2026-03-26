@@ -189,6 +189,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the widgets created by the user.
+     *
+     * @return HasMany<Widget, $this>
+     */
+    public function widgets(): HasMany
+    {
+        return $this->hasMany(Widget::class, 'created_by_user_id');
+    }
+
+    /**
      * Get the task items created by the user.
      *
      * @return HasMany<TaskItem, $this>

@@ -34,7 +34,7 @@ class OverlayOriginSecurityTest extends TestCase
             ->call('submit')
             ->assertHasErrors(['fields.embed_url']);
 
-        $this->assertDatabaseCount('widget_instances', 0);
+        $this->assertDatabaseCount('canvas_widgets', 0);
     }
 
     public function test_remote_widget_form_rejects_loopback_ip_urls(): void
@@ -51,7 +51,7 @@ class OverlayOriginSecurityTest extends TestCase
             ->call('submit')
             ->assertHasErrors(['fields.embed_url']);
 
-        $this->assertDatabaseCount('widget_instances', 0);
+        $this->assertDatabaseCount('canvas_widgets', 0);
     }
 
     public function test_canvas_composer_routes_remote_preview_through_the_overlay_origin(): void
@@ -106,7 +106,7 @@ class OverlayOriginSecurityTest extends TestCase
             ->assertHeader('Content-Security-Policy', "frame-ancestors https://app.twitch-task-pomo.test https://overlay.twitch-task-pomo.test");
     }
 
-    public function test_signed_overlay_widget_route_renders_built_in_widget_pages_without_editor_shell(): void
+    public function test_signed_overlay_widget_route_renders_proprietary_widget_pages_without_editor_shell(): void
     {
         config()->set('app.url', 'https://app.twitch-task-pomo.test');
         config()->set('app.overlay_url', 'https://overlay.twitch-task-pomo.test');
@@ -117,12 +117,6 @@ class OverlayOriginSecurityTest extends TestCase
 
         $widget = WidgetInstance::factory()->for($canvas)->pomodoro()->create([
             'team_id' => $canvas->team_id,
-            'settings' => [
-                'title' => 'Deep Work Sprint',
-                'state' => 'focus',
-                'focus_minutes' => 25,
-                'break_minutes' => 5,
-            ],
         ]);
 
         $url = app(OriginUrlGenerator::class)->signedOverlayRoute('overlay.widgets.show', [

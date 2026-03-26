@@ -7,6 +7,8 @@ use App\Actions\Canvases\CreateCanvas;
 use App\Actions\Canvases\RestoreCanvas;
 use App\Actions\Canvases\UpdateCanvas;
 use App\Enums\ActivityEvent;
+use App\Enums\Models\WidgetPreviewStatus;
+use App\Enums\Models\WidgetSourceKind;
 use App\Enums\TeamMemberRole;
 use App\Livewire\Canvases\CanvasForm;
 use App\Livewire\Canvases\CanvasIndex;
@@ -14,6 +16,7 @@ use App\Livewire\Canvases\CanvasLifecycleModal;
 use App\Models\Activity;
 use App\Models\Canvas;
 use App\Models\User;
+use App\Models\Widget;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -231,11 +234,15 @@ class CanvasCrudTest extends TestCase
             'width' => 1920,
             'height' => 1080,
         ]);
+        $widgetRecord = Widget::factory()->taskList()->create([
+            'team_id' => $user->currentTeam->id,
+            'created_by_user_id' => $user->id,
+        ]);
         $widget = $canvas->widgetInstances()->create([
             'team_id' => $user->currentTeam->id,
-            'source_kind' => \App\Enums\Models\WidgetSourceKind::BuiltIn,
-            'type' => \App\Enums\Models\WidgetType::TaskList,
-            'name' => 'Scaled Widget',
+            'widget_id' => $widgetRecord->id,
+            'source_kind' => WidgetSourceKind::Proprietary,
+            'name' => null,
             'position_x' => 960,
             'position_y' => 80,
             'width' => 720,
@@ -256,7 +263,7 @@ class CanvasCrudTest extends TestCase
                     'content_height' => 700,
                 ],
             ],
-            'preview_status' => \App\Enums\Models\WidgetPreviewStatus::Ready,
+            'preview_status' => WidgetPreviewStatus::Ready,
             'preview_message' => null,
             'preview_checked_at' => now(),
         ]);

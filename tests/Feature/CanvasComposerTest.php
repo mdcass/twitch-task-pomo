@@ -32,7 +32,7 @@ class CanvasComposerTest extends TestCase
 
     public function test_widget_instance_schema_includes_content_and_crop_fields(): void
     {
-        $this->assertTrue(Schema::hasColumns('widget_instances', [
+        $this->assertTrue(Schema::hasColumns('canvas_widgets', [
             'content_width',
             'content_height',
             'crop_top',
@@ -66,7 +66,7 @@ class CanvasComposerTest extends TestCase
             ->assertSee('Task List');
     }
 
-    public function test_add_built_in_widget_form_creates_a_placeholder_widget(): void
+    public function test_add_built_in_widget_form_creates_a_proprietary_widget_placement(): void
     {
         $user = User::factory()->withStreamerTeam()->create();
         $canvas = Canvas::factory()->for($user->currentTeam)->create();
@@ -83,9 +83,9 @@ class CanvasComposerTest extends TestCase
 
         $widget = $canvas->fresh()->widgetInstances()->sole();
 
-        $this->assertSame(WidgetSourceKind::BuiltIn, $widget->source_kind);
+        $this->assertSame(WidgetSourceKind::Proprietary, $widget->source_kind);
         $this->assertSame(WidgetType::Pomodoro, $widget->type);
-        $this->assertSame('Pomodoro Timer', $widget->name);
+        $this->assertSame('Pomodoro Timer', $widget->displayName());
         $this->assertTrue($widget->is_visible);
         $this->assertSame(520, $widget->width);
         $this->assertSame(320, $widget->height);
@@ -118,7 +118,7 @@ class CanvasComposerTest extends TestCase
             ->call('submit')
             ->assertHasErrors(['fields.embed_url']);
 
-        $this->assertDatabaseCount('widget_instances', 0);
+        $this->assertDatabaseCount('canvas_widgets', 0);
     }
 
     public function test_remote_widget_creation_stores_preflight_blocked_state(): void
@@ -235,7 +235,7 @@ class CanvasComposerTest extends TestCase
         $this->assertIsString($snapshot['widgets'][0]['previewToken']);
     }
 
-    public function test_built_in_widgets_render_from_signed_overlay_iframe_previews(): void
+    public function test_proprietary_widgets_render_from_signed_overlay_iframe_previews(): void
     {
         config()->set('app.url', 'https://app.twitch-task-pomo.test');
         config()->set('app.overlay_url', 'https://overlay.twitch-task-pomo.test');
@@ -246,12 +246,6 @@ class CanvasComposerTest extends TestCase
             'team_id' => $user->currentTeam->id,
             'preview_status' => WidgetPreviewStatus::Ready,
             'preview_message' => null,
-            'settings' => [
-                'title' => 'Deep Work Sprint',
-                'state' => 'focus',
-                'focus_minutes' => 25,
-                'break_minutes' => 5,
-            ],
         ]);
 
         $component = Livewire::actingAs($user)
@@ -570,7 +564,7 @@ class CanvasComposerTest extends TestCase
             ->assertDispatched('widget-deleted', deletedWidgetId: $second->id, selectedWidgetId: $third->id)
             ->assertDispatched('overlay-modal-close', id: 'canvas-widget-delete-modal');
 
-        $this->assertDatabaseMissing('widget_instances', ['id' => $second->id]);
+        $this->assertDatabaseMissing('canvas_widgets', ['id' => $second->id]);
         $this->assertSame(0, $first->fresh()->z_index);
         $this->assertSame(1, $third->fresh()->z_index);
     }
@@ -731,7 +725,7 @@ class CanvasComposerTest extends TestCase
             app(CreateBuiltInWidget::class)->create($member, $canvas, WidgetType::TaskList);
             $this->fail('Expected built-in widget creation to be denied.');
         } catch (AuthorizationException) {
-            $this->assertDatabaseCount('widget_instances', 1);
+            $this->assertDatabaseCount('canvas_widgets', 1);
         }
 
         try {
@@ -741,7 +735,7 @@ class CanvasComposerTest extends TestCase
             ]);
             $this->fail('Expected remote widget creation to be denied.');
         } catch (AuthorizationException) {
-            $this->assertDatabaseCount('widget_instances', 1);
+            $this->assertDatabaseCount('canvas_widgets', 1);
         }
 
         try {
@@ -766,7 +760,7 @@ class CanvasComposerTest extends TestCase
             app(DeleteWidgetInstance::class)->delete($member, $widget);
             $this->fail('Expected widget deletion to be denied.');
         } catch (AuthorizationException) {
-            $this->assertDatabaseHas('widget_instances', ['id' => $widget->id]);
+            $this->assertDatabaseHas('canvas_widgets', ['id' => $widget->id]);
         }
 
         try {

@@ -40,7 +40,6 @@ class LocalWidgetPreviewTest extends TestCase
             ->get(route('local.widgets.index', absolute: false))
             ->assertOk()
             ->assertSee('External Widget Preview Launcher')
-            ->assertSee('Manage the now-playing widget source')
             ->assertSee('Generate a task widget URL')
             ->assertSee('Generate a pomodoro widget URL')
             ->assertDontSee('data-shell-layout=', false);

@@ -3,14 +3,15 @@
 namespace App\Support\Widgets;
 
 use App\Enums\Models\WidgetType;
-use App\Models\WidgetInstance;
+use App\Models\CanvasWidget;
+use App\Models\Widget;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 
 class BuiltInWidgetPageFactory
 {
-    public function viewFor(WidgetInstance $widget): string
+    public function viewFor(CanvasWidget $widget): string
     {
         return $this->viewForType($widget->type);
     }
@@ -20,6 +21,8 @@ class BuiltInWidgetPageFactory
         return match ($type) {
             WidgetType::TaskList => 'overlay.widgets.task-list',
             WidgetType::Pomodoro => 'overlay.widgets.pomodoro',
+            WidgetType::FollowerGoal => 'overlay.widgets.follower-goal',
+            WidgetType::SpotifyNowPlaying => 'overlay.widgets.spotify-now-playing',
             default => throw new InvalidArgumentException('Widget does not have a supported built-in page view.'),
         };
     }
@@ -28,9 +31,9 @@ class BuiltInWidgetPageFactory
      * @param  array<string, mixed>  $previewSeed
      * @return array<string, mixed>
      */
-    public function dataFor(WidgetInstance $widget, array $previewSeed = []): array
+    public function dataFor(CanvasWidget $widget, array $previewSeed = []): array
     {
-        return $this->dataForType($widget->type, $widget->settings ?? [], $previewSeed);
+        return $this->dataForType($widget->type, $widget->widget?->config ?? [], $previewSeed, $widget->widget);
     }
 
     /**
@@ -38,7 +41,7 @@ class BuiltInWidgetPageFactory
      * @param  array<string, mixed>  $previewSeed
      * @return array<string, mixed>
      */
-    public function dataForType(?WidgetType $type, array $settings = [], array $previewSeed = []): array
+    public function dataForType(?WidgetType $type, array $settings = [], array $previewSeed = [], ?Widget $widget = null): array
     {
         return match ($type) {
             WidgetType::TaskList => [
@@ -47,6 +50,12 @@ class BuiltInWidgetPageFactory
                 'completedItems' => $this->normalizeItems($settings['completed'] ?? []),
             ],
             WidgetType::Pomodoro => $this->pomodoroData($settings, $previewSeed),
+            WidgetType::FollowerGoal => $this->followerGoalData($settings, $widget),
+            WidgetType::SpotifyNowPlaying => [
+                'title' => (string) ($settings['title'] ?? 'Now Playing'),
+                'showAlbumArt' => (bool) ($settings['show_album_art'] ?? true),
+                'widget' => $widget,
+            ],
             default => throw new InvalidArgumentException('Widget does not have a supported built-in page view.'),
         };
     }
@@ -99,6 +108,22 @@ class BuiltInWidgetPageFactory
             'stateLabel' => $this->stateLabel($state),
             'stateSummary' => $this->stateSummary($state, $focusMinutes, $breakMinutes, $endsAt, $remainingSeconds),
             'stateBadgeClass' => $this->stateBadgeClass($state),
+        ];
+    }
+
+    private function followerGoalData(array $settings, ?Widget $widget): array
+    {
+        $state = $widget?->followerGoalState;
+        $currentCount = (int) ($state?->current_count ?? 0);
+        $goalTarget = max(1, (int) ($settings['goal_target'] ?? 1));
+
+        return [
+            'title' => (string) ($settings['title'] ?? 'Follower Goal'),
+            'goalTarget' => $goalTarget,
+            'currentCount' => $currentCount,
+            'remainingCount' => max(0, $goalTarget - $currentCount),
+            'endDate' => $settings['end_date'] ?? null,
+            'soundPreset' => (string) ($settings['sound_preset'] ?? 'none'),
         ];
     }
 
