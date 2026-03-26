@@ -8,7 +8,7 @@ Capture the first-pass schema and model boundaries that guided Phase 1 and still
 
 This document covers the durable ownership, workflow, Twitch runtime, overlay, and audit models needed for the Phase 1 implementation sequence.
 
-At `HEAD`, the core slice for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions` is implemented. This note remains useful for adjacent schema planning that extends beyond that slice.
+At `HEAD`, the core slice for `streams`, `stream_sessions`, `canvases`, `widget_instances`, `task_items`, and `pomodoro_sessions` is implemented. This note remains useful for adjacent schema planning that extends beyond that slice and now needs to account for the generalized proprietary widget direction described in the newer backlog notes.
 
 It does not restate widget behavior, bot command semantics, viewer timer UX, or later billing rules already defined in the PRD.
 
@@ -50,9 +50,12 @@ It does not restate widget behavior, bot command semantics, viewer timer UX, or 
 - `canvases`
   - Team-owned overlay compositions.
   - Fields: `id`, `uuid`, `team_id`, `created_by_user_id`, `name`, `width`, `height`, `theme_profile_id`, signed URL rotation metadata, timestamps.
-- `widget_instances`
-  - Widgets placed on a canvas.
-  - Fields: `id`, `canvas_id`, `team_id`, `type`, `name`, `position_x`, `position_y`, `width`, `height`, `z_index`, `is_visible`, `settings`, timestamps.
+- `widgets`
+  - Durable team-owned proprietary widget definitions.
+  - Fields: `id`, `uuid`, `team_id`, `created_by_user_id`, `type`, `name`, `schema_version`, `config`, `appearance`, signed URL rotation metadata, coarse status metadata, timestamps.
+- `canvas_widgets`
+  - Widget placements on a canvas.
+  - Fields: `id`, `canvas_id`, `widget_id`, `team_id`, `position_x`, `position_y`, `width`, `height`, `content_width`, `content_height`, crop fields, `z_index`, `is_visible`, placement metadata, timestamps.
 - `theme_profiles`
   - Canvas-level theme settings, only as far as needed for early phases.
   - Fields: `id`, `team_id`, `created_by_user_id`, `name`, `settings`, timestamps.
@@ -90,6 +93,11 @@ It does not restate widget behavior, bot command semantics, viewer timer UX, or 
   - Public or authenticated timer access boundary keyed to the active stream session.
   - Fields: `id`, `stream_session_id`, `access_mode`, `published_at`, nullable `invalidated_at`, `metadata`, timestamps.
 
+### Widget-Specific Runtime State
+
+- Widget-specific runtime or projection state should remain outside the generic `widgets` table when the state is type-specific.
+- Examples include follower-goal progress projections, Spotify playback status boundaries, and other future widget-type-specific runtime concerns that should not become generic widget blobs.
+
 ### Audit
 
 - Activity logging should be implemented through Spatie tables and project-specific event enums rather than a parallel audit schema.
@@ -102,12 +110,14 @@ It does not restate widget behavior, bot command semantics, viewer timer UX, or 
 - `Stream` is a durable Twitch channel record and should not replace team ownership.
 - `StreamSession` owns ephemeral runtime state for tasks, Pomodoro, bot activity, timer publication, and metering.
 - Writes for team-scoped records should route through team or team-owned relationships.
+- Durable widget config belongs to `widgets`, while canvas-specific geometry and visibility belong to `canvas_widgets`.
 
 ## Remaining Build Order
 
 1. `provider_app_tokens`, `twitch_subscriptions`, and any connection/runtime logging tables needed for durable Twitch operations.
-2. `theme_profiles` once canvas-level visual presets need first-class persistence.
-3. `bot_command_events`, `overlay_heartbeats`, and `viewer_timer_sessions` as the runtime and public timer surfaces expand.
+2. generalized proprietary widget storage with `widgets`, `canvas_widgets`, and type-owned widget state or projection tables where required.
+3. `theme_profiles` once canvas-level visual presets need first-class persistence.
+4. `bot_command_events`, `overlay_heartbeats`, and `viewer_timer_sessions` as the runtime and public timer surfaces expand.
 
 ## Follow-up
 

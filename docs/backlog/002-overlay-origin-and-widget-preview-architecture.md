@@ -10,7 +10,7 @@ This note is intentionally implementation-ready. It records the target architect
 
 Proposed and ready to implement.
 
-The current implementation at `HEAD` still renders built-in and remote widget previews directly inside the authenticated editor surface. This document supersedes that direction.
+The current implementation at `HEAD` still renders first-party and remote widget previews directly inside the authenticated editor surface. This document supersedes that direction.
 
 ## Problem Statement
 
@@ -23,7 +23,7 @@ The current composer implementation correctly proves the product interaction mod
 
 However, the trust boundary is too weak for the long term:
 
-- built-in preview routes are same-origin iframes inside the authenticated app shell,
+- first-party preview routes are same-origin iframes inside the authenticated app shell,
 - remote widget URLs are user-supplied and currently render in the authenticated editor,
 - the remote preview inspector performs server-side HTTP requests and therefore needs SSRF controls,
 - the future OBS delivery surface should be lower-trust than the main app origin,
@@ -80,7 +80,7 @@ The overlay origin is not a second product frontend. It is a constrained renderi
 
 ### 2. First-Party Widgets Render Natively
 
-Built-in widgets must stop using iframe previews in the editor.
+Proprietary first-party widgets must stop using iframe previews in the editor.
 
 Instead:
 
@@ -92,7 +92,7 @@ The first implementation should cover:
 
 - task list,
 - pomodoro,
-- spotify now playing when it graduates from local/testing-only seams into the formal widget catalog.
+- spotify now playing as part of the formal proprietary widget catalog.
 
 ### 3. Remote Widgets Stay iframe-Based, But Move Out Of The Trusted Editor
 
@@ -163,13 +163,13 @@ flowchart LR
 
 ## Rendering Model
 
-### Built-In Widgets
+### Proprietary Widgets
 
-Built-in widgets should render through signed overlay-origin widget pages, not inline in the authenticated editor.
+Proprietary widgets should render through signed overlay-origin widget pages, not inline in the authenticated editor.
 
 Implementation shape:
 
-- add a support layer that resolves a widget instance to a signed overlay widget URL,
+- add a support layer that resolves a canvas widget placement to a signed overlay widget URL,
 - serve first-party widgets from dedicated overlay widget page views,
 - point both the editor preview and the published overlay canvas at those same overlay-origin widget pages,
 - keep widget content driven by normalized widget settings so the same data contract feeds editor and runtime.
@@ -181,7 +181,7 @@ This keeps preview and runtime behavior on a single rendering plane while preser
 Remote widget editor preview should use a dedicated overlay-origin preview shell route:
 
 - App editor embeds:
-  - `https://overlay.../overlay/widgets/{widget_instance_id}?signature=...`
+  - `https://overlay.../overlay/widgets/{canvas_widget_id}?signature=...`
 - Preview shell then embeds the remote widget URL.
 
 The preview shell responsibilities:
@@ -200,9 +200,9 @@ The app editor responsibilities:
 
 ## Sandbox And Permissions Policy
 
-### Built-In Widgets
+### Proprietary Widgets
 
-Built-in widget iframes should use the same low-privilege sandbox posture as remote previews unless a concrete first-party requirement forces a broader capability set.
+Proprietary widget iframes should use the same low-privilege sandbox posture as remote previews unless a concrete first-party requirement forces a broader capability set.
 
 First implementation target:
 
@@ -411,19 +411,19 @@ Deliverables:
 - top-level signed published canvas route on overlay origin
 - signed preview shell route on overlay origin
 
-### Step 3. Replace Built-In iframe Previews With Native Renderers
+### Step 3. Replace Proprietary Widget iframe Previews With Native Renderers
 
 Files likely involved:
 
 - `app/Support/Widgets/*`
-- `app/Enums/Models/WidgetType.php`
+- widget-definition registry and widget renderer support
 - `resources/views/livewire/canvases/canvas-composer.blade.php`
 - new renderer views under `resources/views/widgets/`
 
 Deliverables:
 
 - no iframe preview for task list and pomodoro in the editor
-- no same-origin sandbox warning for built-in widget previews
+- no same-origin sandbox warning for proprietary widget previews
 
 ### Step 4. Move Remote Preview Into Overlay Preview Shell
 
@@ -471,7 +471,7 @@ Deliverables:
 
 Tests should cover:
 
-- built-in widgets render natively in editor
+- proprietary widgets render natively in editor
 - remote widgets preview through overlay-origin shell rather than direct remote iframe in app origin
 - remote widget creation rejects app-origin, overlay-origin, loopback, and private-address targets
 - signed overlay route loads on overlay origin
@@ -481,7 +481,7 @@ Tests should cover:
 ## Acceptance Criteria
 
 - The authenticated app origin no longer embeds arbitrary remote URLs directly.
-- Built-in widget previews no longer rely on same-origin iframes.
+- Proprietary widget previews no longer rely on same-origin iframes.
 - OBS delivery uses a top-level signed overlay page on the overlay origin.
 - Overlay preview shell routes are embeddable only by the app origin.
 - Published overlay routes are not designed to be framed by arbitrary sites.

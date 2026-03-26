@@ -58,6 +58,8 @@ This runbook tracks the implementation state of the repository at `HEAD`.
 ## Active Backlog Documents
 
 - [001-concrete-schema](./backlog/001-concrete-schema.md): proposed Phase 1 schema and model boundaries derived from the PRD.
+- [002-overlay-origin-and-widget-preview-architecture](./backlog/002-overlay-origin-and-widget-preview-architecture.md): proposed overlay-origin, preview, and remote-widget trust-boundary plan.
+- [003-generalized-proprietary-widget-model](./backlog/003-generalized-proprietary-widget-model.md): proposed generalized proprietary widget architecture replacing temporary built-in and local-only widget seams.
 
 ## Maintenance Rules
 
