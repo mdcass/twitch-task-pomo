@@ -2,166 +2,171 @@
 
 ## Scope
 
-- Review branch `feat/BP-10-widget-architecture`
-- Validate the new proprietary widget architecture across `/widgets`, `/integrations`, canvas attachment flows, and signed overlay delivery.
-- Confirm the split between reusable proprietary widgets and canvas-scoped remote embeds.
-- Confirm lifecycle behavior for `draft`, `ready`, `pending connection`, and `archived`, including how publication interacts with those states.
-- Treat this slice as a widget-system refactor, not a full Twitch runtime feature. The high-value checks are library management, provider-gated readiness, canvas placement, and secure overlay rendering.
+- Review commit `e9808db` (`feat: BP-10 Widget architecture`, 2026-03-26).
+- Validate the new reusable proprietary widget architecture centered on `Widget` definitions plus canvas-scoped `WidgetInstance` placements.
+- Cover the new authenticated app-shell surfaces at `/widgets`, `/widgets/{widget}/edit`, and `/integrations`, plus the canvas editor add-widget flows.
+- Confirm the new standalone widget publishing flow and the signed overlay runtime routes for canvases and widget frames.
+- Spot-check commit-adjacent regressions around shell navigation visibility, provider-avatar fallback, social OAuth debug handling, and stricter team/provider invariants.
 
 ## Initial states/setup
 
-- Start from a normal local app setup with assets available. `composer setup` is sufficient for a first checkout, and `composer dev` is the expected runtime entrypoint.
-- Use a verified user who owns the current team. The widget and integration pages are behind `auth` and `verified`, and all create/manage actions are owner-only.
-- Prepare a second verified user on the same team with a non-owner role such as moderator so read-only team-member behavior can be checked.
+- Start from a normal local app setup with assets available. `composer dev` is the expected runtime entrypoint.
+- Use a verified team owner account as the primary tester. Widget creation, widget mutation, publishing, and integration management are owner-only.
+- Prepare a second verified user on the same team with a non-owner role such as moderator. This user is needed for view-only checks.
 - Prepare an outsider user on a different team for explicit access-denial checks.
-- Seed or create at least one active canvas so widget attachment can be exercised from `/canvases/{id}/edit`.
-- If you want to test real provider flows, configure local Twitch and Spotify OAuth credentials first. If provider OAuth is not configured locally, you can still fully review the blocked `pending connection` states and owner-only affordances.
-- If you want to verify cross-origin framing and CSP behavior, set `APP_URL` and `APP_OVERLAY_URL` to different hosts locally. The security-sensitive overlay behavior is easiest to review with that split in place.
-- Keep one browser session for the owner and one for the non-owner so permission differences are easy to compare.
+- Create or seed at least one canvas before testing the canvas editor flows.
+- If you want to test Twitch or Spotify connection flows for real, configure local OAuth credentials first. If OAuth is not configured locally, you can still fully verify the pending/blocked states.
+- If you want to inspect framing and overlay-origin behavior, set `APP_URL` and `APP_OVERLAY_URL` to different hosts locally.
+- If you want to verify the social-auth debug override path, run the app in `local` environment. That override is intentionally ignored outside `local`.
+- Keep separate browser sessions for owner, moderator, and outsider accounts so permission differences are obvious.
+- For the Follower Goal reset scenario, seed a widget with non-zero `widget_follower_goal_states.current_count` before starting, because ordinary UI flows in this commit do not create follower events.
 
 ## High-value files to review
 
-- `app/Models/Widget.php`: reusable proprietary widget root, publication metadata, lifecycle state, UUID, usage counts, and activity logging surface.
-- `app/Models/CanvasWidget.php`: canvas placement model for both proprietary and remote widgets, including geometry, crop, preview state, and runtime rendering helpers.
-- `app/Policies/WidgetPolicy.php`: team members may view widgets, but only the team owner may create, update, publish, archive, restore, or reset them.
-- `app/Actions/Widgets/CreateWidget.php`: widget creation defaults, schema versioning, default config and appearance, lifecycle resolution, and follower-goal state bootstrapping.
-- `app/Actions/Widgets/UpdateWidget.php`: action-level validation, per-type normalization, and lifecycle recalculation after config changes.
-- `app/Actions/Widgets/UpdateWidgetPublication.php` and `app/Actions/Widgets/SetWidgetArchivedState.php`: publish, regenerate, unpublish, archive, and restore semantics.
-- `app/Support/Widgets/WidgetDefinitionRegistry.php` and `app/Support/Widgets/WidgetLifecycleResolver.php`: supported widget types and provider-driven readiness rules.
-- `app/Support/Integrations/TeamProviderAuthResolver.php` and `app/Actions/Integrations/IntegrationConnectionService.php`: owner-owned provider resolution, OAuth workflow entrypoints, lifecycle refresh after connect or disconnect, and return-path handling.
-- `app/Actions/CanvasWidgets/AttachWidgetToCanvas.php` and `app/Actions/CanvasWidgets/CreateRemoteCanvasWidget.php`: proprietary widget placement, remote embed validation, preview preflight, and editor defaults.
-- `app/Http/Controllers/WidgetController.php` and `app/Http/Controllers/IntegrationController.php`: route-level page composition, filtering, publication URL generation, and owner/member capability split.
-- `app/Livewire/Widgets/WidgetEditor.php`: shared widget edit surface, preview rendering, provider status, and owner-only actions.
-- `app/Livewire/Canvases/AttachExistingWidgetForm.php` and `app/Livewire/Canvases/EditSharedWidgetForm.php`: canvas-side attach flow and shared-config offcanvas editing.
-- `resources/views/widgets/index.blade.php`, `resources/views/widgets/show.blade.php`, and `resources/views/livewire/widgets/widget-editor.blade.php`: the main widget library and full-page editor UI.
-- `resources/views/integrations/index.blade.php`, `resources/views/canvases/edit.blade.php`, and `resources/views/livewire/canvases/canvas-composer.blade.php`: owner/member integration UI, add-widget entrypoints, and canvas-side edit affordances.
-- `database/migrations/2026_03_23_010003_create_widget_instances_table.php` and `database/migrations/2026_03_26_120000_create_follower_goal_states_table.php`: the new `widgets`, `canvas_widgets`, and follower-goal runtime state persistence.
-- `tests/Feature/Widgets/WidgetRouteTest.php`, `tests/Feature/Widgets/WidgetLivewireTest.php`, `tests/Feature/Widgets/WidgetDomainTest.php`, `tests/Feature/Integrations/IntegrationRouteTest.php`, `tests/Feature/CanvasComposerTest.php`, and `tests/Feature/OverlayOriginSecurityTest.php`: the most direct executable definition of expected behavior.
+- `routes/web.php`: canonical route entrypoints, including `/widgets/{widget}/edit`, `/integrations`, published widget URLs, and signed overlay frame routes.
+- `app/Models/Widget.php`: lifecycle resolution, publishing, archiving, restoring, standalone URL rotation, and Follower Goal reset behavior.
+- `app/Models/WidgetInstance.php`: canonical canvas placement model, same-team invariants, preview helpers, and render geometry helpers.
+- `app/Actions/Widgets/CreateWidget.php`: widget creation defaults, provider-gated initial lifecycle, and Follower Goal child-state bootstrapping.
+- `app/Actions/Widgets/UpdateWidget.php`: editor-save validation and per-definition normalization.
+- `app/Livewire/Widgets/WidgetIndex.php`: library filtering, owner-only creation, and redirect to the editor route.
+- `app/Livewire/Widgets/WidgetEditor.php`: save, publish, unpublish, regenerate, archive, restore, provider-connect, and reset actions.
+- `app/Services/Integrations/IntegrationConnectionService.php`: owner-only connect/disconnect workflow, return-path handling, provider-auth persistence, and widget lifecycle refresh.
+- `app/Livewire/Integrations/IntegrationIndex.php`: owner/member behavior split and dependent-widget listing.
+- `app/Actions/WidgetInstances/QuickCreateWidget.php` and `app/Actions/WidgetInstances/AttachWidgetToCanvas.php`: canvas quick-create and attach-existing flows.
+- `app/Livewire/Canvases/EditWidgetSettingsForm.php`: canvas-side shared widget editing and the rule that provider/lifecycle actions stay on the full widget page.
+- `app/Actions/WidgetInstances/CreateRemoteWidget.php` and `app/Support/Widgets/RemoteWidgetUrlGuard.php`: remote embed validation, preview inspection, and local/private/app-origin blocking.
+- `app/Support/Shell/AppShellNavigation.php`: `Widgets` navigation visibility for team members, `Integrations` visibility for owners only, and provider-avatar fallback behavior.
+- `app/Services/Auth/SocialAuthService.php`: social OAuth handshake persistence, local debug override handling, and existing-provider metadata refresh.
+- `app/Models/Team.php` and `app/Policies/TeamPolicy.php`: current-team invariants, owner-backed provider resolution, and `manageIntegrations` authorization.
+- `tests/Feature/Widgets/WidgetRouteTest.php`, `tests/Feature/Widgets/WidgetLivewireTest.php`, `tests/Feature/Widgets/WidgetDomainTest.php`, `tests/Feature/Integrations/IntegrationRouteTest.php`, `tests/Feature/Integrations/IntegrationLivewireTest.php`, `tests/Feature/CanvasComposerTest.php`, `tests/Feature/OverlayOriginSecurityTest.php`, `tests/Feature/AppShellLayoutTest.php`, `tests/Feature/SocialAuthenticationTest.php`, and `tests/Feature/TeamSemanticsTest.php`: the most direct executable definitions of the expected behavior introduced by this commit.
 
 ## Known limitations and intentional behaviour
 
-- Provider connections are user-owned in v1 and resolved through the current team owner. Team members can inspect provider-backed widgets and integrations, but only the owner can connect, reconnect, disconnect, publish, archive, or repair them.
-- Remote URL embeds remain canvas-scoped placements only. They should never appear in the top-level `/widgets` library.
-- Provider-backed widgets may be created and attached while no provider is connected. They intentionally stay in `Pending Connection` and do not produce runtime output until the owner connects the required provider.
-- Canvas-side shared widget editing is intentionally limited. Provider connect, repair, publish, archive, and other lifecycle controls stay on the full widget page rather than the canvas offcanvas.
-- Archived widgets remain attached to canvases, but runtime and standalone rendering stay disabled until restored.
-- Archiving preserves publication metadata. A previously published widget should become non-routable while archived, then resume on the same published URL after restore unless the key is later regenerated.
-- Unpublishing clears `published_at` but intentionally keeps the existing `publication_key`. Republish should therefore reuse the same URL unless the user explicitly regenerates it.
-- Remote embed creation only accepts HTTPS URLs and intentionally rejects app-origin URLs, overlay-origin URLs, loopback IPs, and private-network targets. Remote widgets that deny iframe embedding should persist as blocked previews rather than silently disappearing.
-- The composer remains spatial-editing-first for desktop and tablet. Smaller screens keep the content visible but are not the primary editing target.
-- Local widget preview tooling is intentionally reduced to `/local/widgets`, `/local/widgets/task-list`, and `/local/widgets/pomodoro` in `local` and `testing` environments. The older local Spotify preview seam was removed.
+- The canonical proprietary widget UI is now `/widgets/{widget}/edit`. `/widgets/{id}` is intentionally gone and should return `404`.
+- The widget library is proprietary-only. Remote embeds stay canvas-scoped and should never appear in `/widgets`.
+- Team members may view widgets and the integrations page, but only the current team owner may create widgets, save widget edits, publish/unpublish/regenerate standalone URLs, archive/restore widgets, reset Follower Goal progress, or manage integrations.
+- Provider-backed widgets can be created and attached before Twitch or Spotify is connected. They intentionally stay in `Needs Setup` and should not render on published runtime surfaces until the owner connects the required provider.
+- Standalone URL state is independent from canvas placement. Turning the standalone URL off should not remove the widget from canvases.
+- `archive()` clears `published_at` but keeps `publication_key`. `unpublish()` also keeps the key. Republish should reuse the same key unless the owner explicitly regenerates it.
+- Canvas-side widget editing changes the shared widget definition everywhere that widget is used. Provider connect/repair, standalone URL controls, archive/restore, and other lifecycle actions intentionally stay on the full widget page.
+- Remote embed URLs must be HTTPS and cannot point at the app origin, overlay origin, localhost-style hosts, loopback IPs, or private-network addresses.
+- The shared shell should show `Widgets` to authenticated team members, but `Integrations` only to the current team owner.
+- If a user lacks a profile photo, the shell intentionally falls back to the most recent usable provider avatar. Revoked or null-avatar provider auths should be ignored.
+- `current_team_id` may be null in application code. Team deletion is intentionally blocked while any active user still points at that team as `current_team`.
+- The social-auth `debug` override is intentionally local-only.
 
 ## Manual test scenarios
 
-### 1. Widget library filters, create flow, and remote-widget exclusion
+### 1. Shell navigation and page entrypoints
 
-- Sign in as the team owner and open `/widgets`.
-- Verify the page header describes reusable proprietary widgets for standalone URLs and canvas placement.
-- Create a new Task List or Pomodoro widget from the inline create form.
-- Verify the app redirects directly to `/widgets/{id}` and shows the widget editor rather than returning to the index.
-- Return to `/widgets` and verify the new widget appears with type, lifecycle, canvas usage, and standalone status.
-- Create or seed a remote canvas widget from a canvas page, then return to `/widgets` and verify the remote embed does not appear in the library.
-- Use the search, type, and lifecycle filters together and verify matching widgets are returned while non-matching widgets disappear.
-- Files to review: `app/Http/Controllers/WidgetController.php`, `app/Actions/Widgets/CreateWidget.php`, `resources/views/widgets/index.blade.php`, `tests/Feature/Widgets/WidgetRouteTest.php`.
+- Sign in as the team owner and confirm the shell shows both `Widgets` and `Integrations`.
+- Sign in as a moderator on the same team and confirm the shell still shows `Widgets` but hides `Integrations`.
+- Open `/widgets`, `/widgets/{widget}/edit`, and `/integrations` directly as the owner and confirm each page renders inside the normal app shell with the expected page header and breadcrumb band.
+- Open `/widgets/{widget}/edit` as the moderator and confirm the page renders, but owner-only actions are absent.
+- Attempt to open the same widget edit page as an outsider and confirm access is forbidden.
+- Verify `/widgets/{id}` returns `404` and is no longer a valid page.
+- If you have a linked provider auth with an avatar and no profile photo, confirm the shell avatar uses the provider image.
+- Files to review: `routes/web.php`, `app/Http/Controllers/WidgetController.php`, `app/Http/Controllers/IntegrationController.php`, `app/Support/Shell/AppShellNavigation.php`, `tests/Feature/AppShellLayoutTest.php`, `tests/Feature/Widgets/WidgetRouteTest.php`.
 
-### 2. Widget permissions: owner manage, member view-only, outsider blocked
+### 2. Widget library create/filter flow and remote-widget exclusion
 
-- As the owner, open a widget detail page and confirm the page exposes save, publish, archive, and provider actions where applicable.
-- As the non-owner team member, open the same widget detail page and verify the widget is visible but the page is effectively read-only.
-- Confirm the member cannot see `Save changes`, `Publish`, `Archive`, `Restore`, `Connect Twitch`, `Connect Spotify`, or similar owner-only controls.
-- As the outsider, attempt to open the same widget detail page and verify access is denied.
-- If convenient, attempt a create request or owner-only mutation from the member session and verify it is forbidden.
-- Files to review: `app/Policies/WidgetPolicy.php`, `app/Livewire/Widgets/WidgetEditor.php`, `resources/views/widgets/show.blade.php`, `resources/views/livewire/widgets/widget-editor.blade.php`, `tests/Feature/Widgets/WidgetRouteTest.php`, `tests/Feature/Widgets/WidgetLivewireTest.php`.
+- Open `/widgets` as the owner.
+- Create a Task List widget and verify the app redirects to `/widgets/{widget}/edit`, not back to the index.
+- Return to `/widgets` and confirm the new widget appears with its type, health, canvas usage count, standalone URL status, and schema version.
+- Create a provider-backed widget such as Follower Goal or Spotify Now Playing and confirm it appears with `Needs Setup` when no provider is connected.
+- Add a remote widget from a canvas page, then return to `/widgets` and confirm that remote widget never appears in the library.
+- Use the search, type, and health filters together and confirm only matching proprietary widgets remain visible.
+- Files to review: `app/Livewire/Widgets/WidgetIndex.php`, `app/Actions/Widgets/CreateWidget.php`, `resources/views/widgets/index.blade.php`, `resources/views/livewire/widgets/widget-index.blade.php`, `tests/Feature/Widgets/WidgetLivewireTest.php`, `tests/Feature/Widgets/WidgetRouteTest.php`.
 
-### 3. Shared widget editing for Task List and Pomodoro types
+### 3. Widget editor save flow and owner/member split
 
-- Create a Task List widget with a custom name.
-- On the full widget page, change the title, pending items, completed items, and accent color, then save.
-- Verify the live preview updates to match the edited values and the saved values persist after reload.
-- Create or open a Pomodoro widget and verify its preview updates for title, timing, and appearance changes.
-- Check that editing uses the shared widget definition, not a canvas-local copy.
-- Files to review: `app/Actions/Widgets/UpdateWidget.php`, `app/Livewire/Widgets/WidgetEditor.php`, `resources/views/livewire/widgets/widget-editor.blade.php`, `resources/views/widgets/editor/task-list.blade.php`, `resources/views/widgets/editor/pomodoro.blade.php`, `tests/Feature/Widgets/WidgetDomainTest.php`.
+- Open a Task List or Pomodoro widget as the owner.
+- Change the widget name plus a few type-specific config and appearance fields, save, then reload the page.
+- Confirm the saved values persist and the preview reflects the updated config.
+- Open the same widget page as the moderator and confirm the widget is visible but `Save changes`, provider-connect buttons, standalone URL buttons, and archive/restore actions are absent.
+- For a Follower Goal widget without Twitch connected, confirm the page shows the owner-action-required warning and the provider status block.
+- Files to review: `app/Livewire/Widgets/WidgetEditor.php`, `app/Actions/Widgets/UpdateWidget.php`, `resources/views/widgets/edit.blade.php`, `resources/views/livewire/widgets/widget-editor.blade.php`, `tests/Feature/Widgets/WidgetLivewireTest.php`, `tests/Feature/Widgets/WidgetDomainTest.php`.
 
-### 4. Provider-backed widget lifecycle and owner integration actions
+### 4. Integrations page and provider-backed lifecycle refresh
 
-- Create a Follower Goal widget and a Spotify Now Playing widget while no matching provider connection exists for the team owner.
-- Verify both widgets land in `Pending Connection`.
-- On each widget page, verify the warning copy explains that owner action is required and that the widget may remain attached as a draft.
-- As the owner, verify the widget page offers `Connect Twitch`, `Reconnect Twitch`, `Connect Spotify`, or `Reconnect Spotify` as appropriate.
-- As the non-owner team member, verify the same widget page shows the lifecycle state but hides provider-connect actions.
-- If local OAuth is configured, complete the connect flow from the widget or integrations page and verify the widget lifecycle changes from `Pending Connection` to `Ready`.
-- Disconnect the provider from `/integrations` and verify the widget lifecycle returns to `Pending Connection`.
-- Files to review: `app/Support/Widgets/WidgetLifecycleResolver.php`, `app/Support/Integrations/TeamProviderAuthResolver.php`, `app/Actions/Integrations/IntegrationConnectionService.php`, `resources/views/widgets/show.blade.php`, `resources/views/livewire/widgets/widget-editor.blade.php`, `resources/views/integrations/index.blade.php`, `tests/Feature/Integrations/IntegrationRouteTest.php`, `tests/Feature/Widgets/WidgetDomainTest.php`.
+- Create a Follower Goal widget and a Spotify Now Playing widget with no provider connections present.
+- Open `/integrations` as the owner and confirm Twitch and Spotify both render as provider cards with usage counts and dependent widgets.
+- Confirm the owner sees `Connect` or `Reconnect` controls, while the moderator sees the same status information but no connect/disconnect controls.
+- Open the dependent widget from `/integrations` and confirm it links to the canonical widget edit page.
+- If local OAuth is configured, complete a provider connection from `/integrations` or the widget page and confirm the affected widgets move from `Needs Setup` to `Ready`.
+- Disconnect that provider from `/integrations` and confirm the affected widgets return to `Needs Setup`.
+- Files to review: `app/Services/Integrations/IntegrationConnectionService.php`, `app/Http/Controllers/IntegrationConnectionController.php`, `app/Livewire/Integrations/IntegrationIndex.php`, `resources/views/integrations/index.blade.php`, `resources/views/livewire/integrations/integration-index.blade.php`, `tests/Feature/Integrations/IntegrationRouteTest.php`, `tests/Feature/Integrations/IntegrationLivewireTest.php`, `tests/Feature/Widgets/WidgetDomainTest.php`.
 
-### 5. Integrations page owner/member split and dependent widget listing
+### 5. Standalone URL publish, regenerate, unpublish, archive, and restore
 
-- Open `/integrations` as the team owner.
-- Verify Twitch and Spotify both render as separate provider cards, each showing connection status, usage count, and dependent widgets.
-- If a provider is connected, verify the page shows owner connection identity details and a disconnect action.
-- If a provider is not connected, verify the page clearly explains that dependent widgets stay blocked until the owner connects it.
-- Open the same page as the non-owner team member and verify the status cards and dependent widgets remain visible, but connect, reconnect, and disconnect controls do not appear.
-- Click through to a dependent widget from the integrations page and verify it opens the canonical widget page.
-- Files to review: `app/Http/Controllers/IntegrationController.php`, `app/Actions/Integrations/IntegrationConnectionService.php`, `resources/views/integrations/index.blade.php`, `tests/Feature/Integrations/IntegrationRouteTest.php`.
+- Open a ready Task List or Pomodoro widget as the owner.
+- Turn the standalone URL on and confirm a read-only URL field appears.
+- Open that URL and confirm it renders the widget itself without the authenticated editor shell.
+- Regenerate the standalone URL and confirm the old URL stops working while the new one succeeds.
+- Turn the standalone URL off and confirm the URL stops resolving.
+- Turn it back on without regenerating and confirm the key is reused.
+- Archive the widget and confirm the standalone URL stops resolving even though the widget may still be attached to canvases.
+- Restore the widget and confirm the lifecycle returns from `Archived`, while the widget remains unpublished until explicitly turned on again.
+- Files to review: `app/Models/Widget.php`, `app/Livewire/Widgets/WidgetEditor.php`, `app/Http/Controllers/OverlayWidgetController.php`, `routes/web.php`, `tests/Feature/Widgets/WidgetDomainTest.php`, `tests/Feature/Widgets/WidgetRouteTest.php`.
 
-### 6. Publication, key regeneration, unpublish, archive, and restore
+### 6. Follower Goal progress preservation and reset
 
-- Open a ready widget as the owner and publish it.
-- Verify the page shows a `Published URL` field and that opening the URL renders the widget without the authenticated app shell.
-- Regenerate the URL and verify the previously copied URL stops working while the new URL succeeds.
-- Unpublish the widget and verify the published URL no longer resolves.
-- Republish the widget without regenerating and verify the URL works again at the same path.
-- Archive a published widget and verify the widget page shows the archived lifecycle state while the previously valid standalone URL stops rendering.
-- Restore the widget and verify the same standalone URL works again if the key was not regenerated.
-- Files to review: `app/Actions/Widgets/UpdateWidgetPublication.php`, `app/Actions/Widgets/SetWidgetArchivedState.php`, `app/Http/Controllers/WidgetController.php`, `tests/Feature/Widgets/WidgetRouteTest.php`, `tests/Feature/Widgets/WidgetDomainTest.php`.
+- Seed a Follower Goal widget with non-zero progress before starting this scenario.
+- Open the widget edit page as the owner and note the current progress shown in the preview/output.
+- Save ordinary config changes such as title, goal target, or appearance, then confirm the progress value is preserved.
+- Use `Reset Goal Progress` and confirm the count resets to zero and any frozen state clears.
+- Open the same widget as the moderator and confirm the reset action is not available.
+- Files to review: `app/Models/Widget.php`, `app/Models/Widgets/FollowerGoalState.php`, `app/Livewire/Widgets/WidgetEditor.php`, `tests/Feature/Widgets/WidgetDomainTest.php`, `tests/Feature/Widgets/WidgetLivewireTest.php`, `tests/Feature/Widgets/WidgetRouteTest.php`.
 
-### 7. Follower Goal reset behavior
+### 7. Canvas quick-create, attach-existing, and shared widget settings
 
-- Open a Follower Goal widget as the owner.
-- If the widget has non-zero progress, verify the page shows the current count in preview/output.
-- Use `Reset Goal Progress`.
-- Verify the follower count resets to zero and any frozen state clears.
-- As a non-owner team member, verify the reset action is not available.
-- Files to review: `app/Actions/Widgets/UpdateFollowerGoalState.php`, `app/Livewire/Widgets/WidgetEditor.php`, `resources/views/livewire/widgets/widget-editor.blade.php`, `tests/Feature/Widgets/WidgetLivewireTest.php`, `tests/Feature/Widgets/WidgetRouteTest.php`.
+- Open `/canvases/{canvas}/edit` as the owner.
+- Use `Add widget` -> `Quick-create widget` and create a Task List or Pomodoro widget. Confirm a new layer appears immediately on the canvas.
+- Use `Add widget` -> `Attach widget` and attach an existing proprietary widget. Confirm the new layer appears and uses the shared widget name/type.
+- Select an attached proprietary widget and use `Edit widget settings`.
+- Confirm the offcanvas clearly states the edits apply anywhere the widget is used.
+- Save changes in the offcanvas and confirm the canvas preview updates to the shared widget config.
+- For a provider-backed widget, confirm the offcanvas warns that connect/repair/standalone/archive actions stay on the full widget page.
+- Use `Open widget page` from the composer and confirm it opens the canonical editor route.
+- Files to review: `app/Actions/WidgetInstances/QuickCreateWidget.php`, `app/Actions/WidgetInstances/AttachWidgetToCanvas.php`, `app/Livewire/Canvases/QuickCreateWidgetForm.php`, `app/Livewire/Canvases/AttachExistingWidgetForm.php`, `app/Livewire/Canvases/EditWidgetSettingsForm.php`, `resources/views/canvases/edit.blade.php`, `resources/views/livewire/canvases/canvas-composer.blade.php`, `tests/Feature/CanvasComposerTest.php`, `tests/Feature/Widgets/WidgetLivewireTest.php`.
 
-### 8. Canvas composer attach existing widget and edit shared settings
+### 8. Remote widget validation, preview state, and overlay routing
 
-- Open `/canvases/{id}/edit` as the owner.
-- Use `Add widget` and choose `Create proprietary widget` or `Attach existing widget`.
-- For `Attach existing widget`, pick a ready shared widget and submit.
-- Verify a new layer appears in the composer, the placement uses the proprietary widget label, and the widget page remains the canonical management surface.
-- Select the placed widget and use `Edit shared settings`.
-- For a Task List widget, verify the offcanvas loads the shared name, pending list, completed list, and appearance fields.
-- Save changes and verify the canvas-side preview reflects the updated shared config.
-- For a provider-backed widget, verify the offcanvas explicitly keeps provider connect, publish, and archive actions on the full widget page rather than exposing them inline.
-- Files to review: `app/Actions/CanvasWidgets/AttachWidgetToCanvas.php`, `app/Livewire/Canvases/AttachExistingWidgetForm.php`, `app/Livewire/Canvases/EditSharedWidgetForm.php`, `resources/views/canvases/edit.blade.php`, `resources/views/livewire/canvases/canvas-composer.blade.php`, `tests/Feature/Widgets/WidgetLivewireTest.php`.
+- From the canvas editor, use `Add widget` -> `Add remote widget`.
+- Attempt to save an `http://` URL and confirm validation rejects it as non-HTTPS.
+- Attempt to save a URL on the app origin, overlay origin, `localhost`, or a loopback/private IP and confirm validation rejects it.
+- Save a valid HTTPS remote widget and confirm it creates a canvas layer but does not appear in `/widgets`.
+- If you have a test URL that blocks iframe embedding, save it and confirm the widget persists with a blocked or unavailable preview state instead of silently disappearing.
+- Inspect the canvas overlay output and confirm remote widgets render through the overlay-origin widget-frame route, not the authenticated editor shell.
+- Files to review: `app/Livewire/Canvases/AddRemoteWidgetForm.php`, `app/Actions/WidgetInstances/CreateRemoteWidget.php`, `app/Support/Widgets/RemoteWidgetUrlGuard.php`, `app/Http/Controllers/OverlayWidgetController.php`, `resources/views/overlay/canvas.blade.php`, `tests/Feature/CanvasComposerTest.php`, `tests/Feature/OverlayOriginSecurityTest.php`.
 
-### 9. Remote embed URL guardrails and preview blocking
+### 9. Signed overlay runtime behavior for canvases and published widgets
 
-- On a canvas edit page, choose `Add widget` then `Remote embed URL`.
-- Attempt to add an `http://` URL and verify validation blocks it.
-- Attempt to add a URL on the app origin or a loopback address and verify validation blocks it.
-- Add a valid HTTPS remote embed that allows framing and verify it appears in the layer list as a canvas-scoped remote widget.
-- If you have a test URL that returns restrictive iframe headers such as `X-Frame-Options: DENY`, add it and verify the widget persists with a blocked preview message rather than appearing as healthy.
-- Verify remote widgets still do not appear in the `/widgets` library afterward.
-- Files to review: `app/Actions/CanvasWidgets/CreateRemoteCanvasWidget.php`, `app/Support/Widgets/RemoteWidgetUrlGuard.php`, `app/Support/Widgets/RemoteWidgetPreviewInspector.php`, `tests/Feature/CanvasComposerTest.php`, `tests/Feature/OverlayOriginSecurityTest.php`.
+- Open a published standalone widget URL and confirm it renders only the widget output.
+- Open a signed canvas overlay URL and confirm the page renders the configured canvas dimensions and iframe-backed widget frames without the editor shell.
+- Confirm ready proprietary widgets render, while proprietary widgets in `Needs Setup`, `Broken`, or `Archived` do not appear in runtime output.
+- If the canvas contains a remote widget, inspect the iframe and confirm it uses the relaxed remote sandbox (`allow-scripts allow-same-origin`) while proprietary widgets use the stricter proprietary frame route.
+- Modify the signed or keyed URL so it is invalid and confirm the route no longer resolves.
+- Files to review: `app/Http/Controllers/OverlayCanvasController.php`, `app/Http/Controllers/OverlayWidgetController.php`, `resources/views/overlay/canvas.blade.php`, `routes/web.php`, `tests/Feature/OverlayOriginSecurityTest.php`, `tests/Feature/Widgets/WidgetRouteTest.php`, `tests/Feature/CanvasComposerTest.php`.
 
-### 10. Overlay-origin rendering and signed access
+### 10. Social-auth and team-invariant regression spot checks
 
-- Open a published standalone widget URL and verify the rendered page does not include the authenticated shell layout.
-- If `APP_OVERLAY_URL` is split from `APP_URL`, inspect response headers and verify the framing policy matches the expected overlay route behavior.
-- Open a signed canvas overlay URL and verify it renders iframe-backed widget frames rather than the editor shell.
-- If the canvas contains a remote widget, verify its frame uses the same overlay route family and expected sandbox behavior.
-- Modify the standalone widget URL so the path key is incorrect and verify the route returns not found.
-- Verify an unpublished or archived widget no longer resolves even if you still have the old signed URL.
-- Files to review: `routes/web.php`, `app/Http/Controllers/OverlayWidgetController.php`, `app/Http/Controllers/OverlayCanvasController.php`, `app/Support/Routing/OriginUrlGenerator.php`, `tests/Feature/Widgets/WidgetRouteTest.php`, `tests/Feature/OverlayOriginSecurityTest.php`.
+- In `local` environment, start a register flow with a supported provider and `debug=no_email`, then confirm the handshake persists and routes the user into the social-email onboarding path instead of silently completing registration.
+- Repeat the same flow outside `local` and confirm the debug override is ignored.
+- If you have an existing linked provider account, sign in through that provider and confirm the callback completes login rather than forcing a new registration path.
+- Review any team-management or destructive flows you touch locally and confirm no active user can leave a team deleted while still pointing at it as `current_team`.
+- Files to review: `app/Services/Auth/SocialAuthService.php`, `app/Actions/Auth/CompleteSocialRegistration.php`, `app/Models/Team.php`, `app/Models/User.php`, `tests/Feature/SocialAuthenticationTest.php`, `tests/Feature/TeamSemanticsTest.php`.
 
 ## Recommended Supplemental Checks
 
-- Run `php artisan test --parallel --filter=WidgetRouteTest` for route, authorization, and publication coverage.
-- Run `php artisan test --parallel --filter=WidgetLivewireTest` for the widget editor and canvas-side offcanvas flows.
-- Run `php artisan test --parallel --filter=WidgetDomainTest` for lifecycle, registry, publication, and archive semantics.
-- Run `php artisan test --parallel --filter=IntegrationRouteTest` if you touched provider connection behavior.
-- Run `php artisan test --parallel --filter=CanvasComposerTest` and `php artisan test --parallel --filter=OverlayOriginSecurityTest` for canvas placement and overlay-origin guardrails.
-- Run `php artisan test --parallel --filter=AppShellLayoutTest` if the widgets or integrations pages look wrong in the shared shell.
-- Use a real browser pass for the owner journey if anything in the composer or overlay behavior feels suspect. `composer test:browser` is the repo browser-test entrypoint.
-- If you want extra confidence in the signed overlay behavior, inspect network headers and verify the CSP and framing behavior while loading published widget and canvas overlay URLs.
+- Run `php artisan test --parallel --filter=WidgetRouteTest`.
+- Run `php artisan test --parallel --filter=WidgetLivewireTest`.
+- Run `php artisan test --parallel --filter=WidgetDomainTest`.
+- Run `php artisan test --parallel --filter=IntegrationRouteTest`.
+- Run `php artisan test --parallel --filter=IntegrationLivewireTest`.
+- Run `php artisan test --parallel --filter=CanvasComposerTest`.
+- Run `php artisan test --parallel --filter=OverlayOriginSecurityTest`.
+- Run `php artisan test --parallel --filter=AppShellLayoutTest`.
+- Run `php artisan test --parallel --filter=SocialAuthenticationTest`.
+- Run `php artisan test --parallel --filter=TeamSemanticsTest`.
+- Use `composer test:browser` if you want extra confidence in the canvas editor interactions, shell navigation, or overlay rendering in a real browser.
